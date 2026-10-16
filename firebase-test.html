@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Connection Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-box {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #0056b3; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 Firebase Connection Test</h1>
+
+  <div class="test-box">
+    <h2>Step 1: Check Firebase Scripts</h2>
+    <div id="scripts-status"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>Step 2: Initialize Firebase</h2>
+    <button onclick="testInitialize()">Test Initialize</button>
+    <div id="init-status"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>Step 3: Create Test Player</h2>
+    <button onclick="testCreatePlayer()">Create Test Player</button>
+    <div id="player-status"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>Step 4: Read Data</h2>
+    <button onclick="testReadData()">Read Players Collection</button>
+    <div id="read-status"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>Console Logs</h2>
+    <div id="console-logs" style="max-height: 300px; overflow-y: auto;"></div>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <script>
+    // Capture console logs
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    const logs = [];
+
+    function addLog(type, ...args) {
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' ');
+      logs.push({ type, message, time: new Date().toLocaleTimeString() });
+      updateConsoleDisplay();
+    }
+
+    console.log = (...args) => { originalLog(...args); addLog('log', ...args); };
+    console.error = (...args) => { originalError(...args); addLog('error', ...args); };
+    console.warn = (...args) => { originalWarn(...args); addLog('warn', ...args); };
+
+    function updateConsoleDisplay() {
+      const container = document.getElementById('console-logs');
+      container.innerHTML = logs.map(log => {
+        const className = log.type === 'error' ? 'error' : log.type === 'warn' ? 'warning' : 'info';
+        return `<div class="status ${className}"><strong>[${log.time}]</strong> ${log.message}</div>`;
+      }).reverse().join('');
+    }
+
+    // Step 1: Check scripts
+    window.addEventListener('DOMContentLoaded', () => {
+      const scriptsStatus = document.getElementById('scripts-status');
+
+      if (typeof firebase !== 'undefined') {
+        scriptsStatus.innerHTML = '<div class="status success">✅ Firebase SDK loaded successfully!</div>';
+        console.log('Firebase version:', firebase.SDK_VERSION);
+      } else {
+        scriptsStatus.innerHTML = '<div class="status error">❌ Firebase SDK not loaded!</div>';
+      }
+
+      if (typeof initializeFirebase === 'function') {
+        scriptsStatus.innerHTML += '<div class="status success">✅ firebase-config.js loaded!</div>';
+      } else {
+        scriptsStatus.innerHTML += '<div class="status error">❌ firebase-config.js not loaded!</div>';
+      }
+    });
+
+    // Step 2: Initialize
+    function testInitialize() {
+      const statusDiv = document.getElementById('init-status');
+      statusDiv.innerHTML = '<div class="status info">⏳ Initializing...</div>';
+
+      try {
+        const result = initializeFirebase();
+        if (result) {
+          statusDiv.innerHTML = '<div class="status success">✅ Firebase initialized successfully!</div>';
+          statusDiv.innerHTML += '<pre>' + JSON.stringify(firebaseConfig, null, 2) + '</pre>';
+        } else {
+          statusDiv.innerHTML = '<div class="status error">❌ Firebase initialization failed!</div>';
+        }
+      } catch (error) {
+        statusDiv.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+        console.error('Initialization error:', error);
+      }
+    }
+
+    // Step 3: Create player
+    async function testCreatePlayer() {
+      const statusDiv = document.getElementById('player-status');
+      statusDiv.innerHTML = '<div class="status info">⏳ Creating test player...</div>';
+
+      try {
+        if (!db) {
+          initializeFirebase();
+        }
+
+        const testName = 'TestPlayer' + Math.floor(Math.random() * 1000);
+        console.log('Creating player:', testName);
+
+        const player = await getOrCreatePlayer(testName);
+
+        if (player) {
+          statusDiv.innerHTML = '<div class="status success">✅ Player created successfully!</div>';
+          statusDiv.innerHTML += '<pre>' + JSON.stringify(player, null, 2) + '</pre>';
+        } else {
+          statusDiv.innerHTML = '<div class="status error">❌ Failed to create player!</div>';
+        }
+      } catch (error) {
+        statusDiv.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+        console.error('Player creation error:', error);
+      }
+    }
+
+    // Step 4: Read data
+    async function testReadData() {
+      const statusDiv = document.getElementById('read-status');
+      statusDiv.innerHTML = '<div class="status info">⏳ Reading players collection...</div>';
+
+      try {
+        if (!db) {
+          initializeFirebase();
+        }
+
+        const snapshot = await db.collection('players').get();
+        const players = [];
+        snapshot.forEach(doc => {
+          players.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (players.length > 0) {
+          statusDiv.innerHTML = `<div class="status success">✅ Found ${players.length} player(s)!</div>`;
+          statusDiv.innerHTML += '<pre>' + JSON.stringify(players, null, 2) + '</pre>';
+        } else {
+          statusDiv.innerHTML = '<div class="status warning">⚠️ No players found in database</div>';
+        }
+      } catch (error) {
+        statusDiv.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+        console.error('Read error:', error);
+
+        if (error.code === 'permission-denied') {
+          statusDiv.innerHTML += '<div class="status error">🔒 Permission denied! Check Firestore security rules.</div>';
+        }
+      }
+    }
+  </script>
+</body>
+</html>
