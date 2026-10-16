@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ahorcado - Hangman Game! 🎯</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    h1, h2, h3, .font-fun {
+      font-family: 'Fredoka', cursive;
+    }
+
+    /* Sad faces animation overlay */
+    #sad-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .sad-face {
+      position: absolute;
+      font-size: 2.5rem;
+      animation: fallDown 2.5s linear forwards;
+      opacity: 0.9;
+    }
+
+    @keyframes fallDown {
+      0% {
+        transform: translateY(-50px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(105vh) rotate(360deg);
+        opacity: 0.2;
+      }
+    }
+
+    .btn-pop {
+      transition: all 0.15s ease-out;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(0.95); }
+    }
+    .speaker-pulse {
+      animation: pulse-ring 2s infinite;
+    }
+
+    .letter-box {
+      width: 50px;
+      height: 60px;
+      border-bottom: 4px solid #7c3aed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #1e293b;
+    }
+
+    .keyboard-btn {
+      width: 45px;
+      height: 45px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .keyboard-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    #hangman-canvas {
+      border: 4px solid #7c3aed;
+      border-radius: 1rem;
+      background: white;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 antialiased p-3 md:p-6">
+
+  <!-- Container para la animación de caritas tristes -->
+  <div id="sad-overlay"></div>
+
+  <!-- Header -->
+  <header class="max-w-5xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60">
+    <div class="flex items-center gap-3 mb-3 sm:mb-0">
+      <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2.5 rounded-xl shadow-md text-lg flex items-center justify-center w-10 h-10 transition btn-pop" title="Volver al menú">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="bg-pink-500 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12 cursor-pointer" onclick="resetGame()">
+        <i class="fa-solid fa-gamepad"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-pink-600 tracking-wide leading-none">Ahorcado Game</h1>
+        <p class="text-xs md:text-sm font-semibold text-purple-500">Guess the Word! 🎯</p>
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="flex items-center gap-4 bg-purple-100/80 px-5 py-2.5 rounded-full border-2 border-purple-300 shadow-inner">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-trophy text-yellow-500 text-xl"></i>
+        <span class="font-fun text-xl font-bold text-purple-800">
+          Score: <span id="score">0</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
+
+    <!-- Game Card -->
+    <section id="game-card" class="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative">
+
+      <!-- Category Badge -->
+      <div class="text-center mb-6">
+        <span id="category-badge" class="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
+          Category: Loading...
+        </span>
+      </div>
+
+      <!-- Game Area -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+        <!-- Left Side: Hangman Drawing -->
+        <div class="flex flex-col items-center gap-4">
+          <h3 class="text-xl font-bold text-purple-700 font-fun">Hangman</h3>
+          <canvas id="hangman-canvas" width="200" height="250"></canvas>
+          <div class="text-center">
+            <p class="text-sm font-bold text-slate-600">Errors: <span id="errors" class="text-red-500">0</span> / <span id="max-errors">6</span></p>
+          </div>
+        </div>
+
+        <!-- Right Side: Image & Word -->
+        <div class="flex flex-col items-center gap-6">
+          <div class="flex items-center gap-4">
+            <div class="text-9xl">
+              <span id="word-emoji">🤔</span>
+            </div>
+            <button onclick="speakWord()" title="Listen to the word" class="speaker-pulse bg-pink-500 hover:bg-pink-600 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition btn-pop flex-shrink-0">
+              <i class="fa-solid fa-volume-high"></i>
+            </button>
+          </div>
+
+          <!-- Word Spaces -->
+          <div id="word-container" class="flex flex-wrap gap-2 justify-center">
+            <!-- Letter boxes will be generated here -->
+          </div>
+
+          <!-- Hint -->
+          <div class="bg-purple-50 rounded-2xl p-4 border-2 border-purple-200">
+            <p class="text-sm font-bold text-purple-600">
+              <i class="fa-solid fa-lightbulb"></i> Hint: <span id="hint-text">...</span>
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Keyboard -->
+      <div class="bg-slate-50 rounded-3xl p-6 border-4 border-purple-100">
+        <h3 class="text-center text-lg font-bold text-purple-700 font-fun mb-4">Select a Letter</h3>
+        <div id="keyboard" class="flex flex-wrap gap-2 justify-center">
+          <!-- Keyboard buttons will be generated here -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
+        <button onclick="nextWord()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition btn-pop flex items-center gap-2 shadow-lg">
+          Next Word <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- Results Screen -->
+    <section id="results-card" class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl border-4 border-white hidden">
+      <div class="w-24 h-24 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-inner border-2 border-pink-300">
+        <i class="fa-solid fa-trophy animate-bounce"></i>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-800 mb-2 font-fun">Game Over! 🎉</h2>
+      <p class="text-slate-600 font-medium mb-2">Your Final Score:</p>
+      <p class="text-5xl font-bold text-purple-600 mb-6"><span id="final-score">0</span></p>
+
+      <div class="flex flex-col gap-3">
+        <button onclick="resetGame()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Play Again
+        </button>
+        <button onclick="goHome()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
+          <i class="fa-solid fa-home"></i> Main Menu
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Game Script -->
+  <script>
+    /* ============================================================
+        VOCABULARY DATA
+    ============================================================ */
+    const vocabulary = {
+      rooms: [
+        { word: "KITCHEN", emoji: "🍳", hint: "Where you cook food" },
+        { word: "BEDROOM", emoji: "🛏️", hint: "Where you sleep" },
+        { word: "BATHROOM", emoji: "🚽", hint: "Where you take a shower" },
+        { word: "LIVING ROOM", emoji: "🛋️", hint: "Where you watch TV" },
+        { word: "GARAGE", emoji: "🚗", hint: "Where you park the car" },
+        { word: "GARDEN", emoji: "🌻", hint: "Green space outside" },
+      ],
+      furniture: [
+        { word: "CHAIR", emoji: "🪑", hint: "You sit on this" },
+        { word: "TABLE", emoji: "🪑", hint: "You eat on this" },
+        { word: "BED", emoji: "🛏️", hint: "You sleep on this" },
+        { word: "SOFA", emoji: "🛋️", hint: "Comfortable seat for many people" },
+        { word: "DESK", emoji: "🖥️", hint: "You work or study on this" },
+        { word: "LAMP", emoji: "💡", hint: "Gives you light" },
+      ],
+      objects: [
+        { word: "BOOK", emoji: "📖", hint: "You read this" },
+        { word: "PHONE", emoji: "📱", hint: "You call people with this" },
+        { word: "PENCIL", emoji: "✏️", hint: "You write with this" },
+        { word: "CLOCK", emoji: "🕐", hint: "Tells you the time" },
+        { word: "BALL", emoji: "⚽", hint: "You play sports with this" },
+        { word: "CUP", emoji: "☕", hint: "You drink from this" },
+        { word: "SPOON", emoji: "🥄", hint: "You eat soup with this" },
+        { word: "KEY", emoji: "🔑", hint: "Opens a door" },
+      ],
+      animals: [
+        { word: "CAT", emoji: "🐱", hint: "Says meow" },
+        { word: "DOG", emoji: "🐶", hint: "Says woof" },
+        { word: "BIRD", emoji: "🐦", hint: "Can fly" },
+        { word: "FISH", emoji: "🐟", hint: "Lives in water" },
+        { word: "HORSE", emoji: "🐴", hint: "You can ride this animal" },
+        { word: "RABBIT", emoji: "🐰", hint: "Has long ears and hops" },
+        { word: "ELEPHANT", emoji: "🐘", hint: "Very big with a trunk" },
+        { word: "LION", emoji: "🦁", hint: "King of the jungle" },
+      ]
+    };
+
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const MAX_ERRORS = 6;
+
+    /* ============================================================
+        GAME STATE
+    ============================================================ */
+    let currentWord = null;
+    let guessedLetters = [];
+    let errors = 0;
+    let score = 0;
+    let usedWords = [];
+
+    /* ============================================================
+        INITIALIZATION
+    ============================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      createKeyboard();
+      initGame();
+    });
+
+    function initGame() {
+      score = 0;
+      usedWords = [];
+      updateScore();
+      loadNewWord();
+    }
+
+    function createKeyboard() {
+      const keyboard = document.getElementById('keyboard');
+      keyboard.innerHTML = ALPHABET.map(letter => `
+        <button
+          id="key-${letter}"
+          onclick="selectLetter('${letter}')"
+          class="keyboard-btn bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-500 rounded-xl transition btn-pop text-slate-800">
+          ${letter}
+        </button>
+      `).join('');
+    }
+
+    function loadNewWord() {
+      // Get all categories
+      const categories = Object.keys(vocabulary);
+
+      // Get available words (not used yet)
+      let availableWords = [];
+      let categoryName = '';
+
+      categories.forEach(cat => {
+        vocabulary[cat].forEach(item => {
+          if (!usedWords.includes(item.word)) {
+            availableWords.push({ ...item, category: cat });
+          }
+        });
+      });
+
+      // If no words left, show results
+      if (availableWords.length === 0) {
+        showResults();
+        return;
+      }
+
+      // Pick random word
+      const randomIndex = Math.floor(Math.random() * availableWords.length);
+      currentWord = availableWords[randomIndex];
+      usedWords.push(currentWord.word);
+
+      // Reset game state
+      guessedLetters = [];
+      errors = 0;
+
+      // Update UI
+      document.getElementById('category-badge').textContent = `Category: ${capitalizeFirst(currentWord.category)}`;
+      document.getElementById('word-emoji').textContent = currentWord.emoji;
+      document.getElementById('hint-text').textContent = currentWord.hint;
+      document.getElementById('errors').textContent = errors;
+      document.getElementById('max-errors').textContent = MAX_ERRORS;
+
+      // Reset keyboard
+      ALPHABET.forEach(letter => {
+        const btn = document.getElementById(`key-${letter}`);
+        btn.disabled = false;
+        btn.classList.remove('bg-red-200', 'bg-green-200');
+        btn.classList.add('bg-white');
+      });
+
+      // Create word boxes
+      createWordBoxes();
+
+      // Clear hangman
+      drawHangman();
+    }
+
+    function createWordBoxes() {
+      const container = document.getElementById('word-container');
+      const word = currentWord.word;
+
+      container.innerHTML = word.split('').map((letter, i) => {
+        if (letter === ' ') {
+          return '<div class="w-4"></div>'; // Space between words
+        }
+        return `<div class="letter-box" id="box-${i}"></div>`;
+      }).join('');
+    }
+
+    function selectLetter(letter) {
+      const btn = document.getElementById(`key-${letter}`);
+      btn.disabled = true;
+
+      guessedLetters.push(letter);
+
+      // Check if letter is in word
+      const word = currentWord.word;
+      let found = false;
+
+      word.split('').forEach((char, i) => {
+        if (char === letter) {
+          document.getElementById(`box-${i}`).textContent = letter;
+          found = true;
+        }
+      });
+
+      if (found) {
+        btn.classList.add('bg-green-200');
+        playSound('correct');
+
+        // Check if word is complete
+        if (isWordComplete()) {
+          // Trigger confetti immediately
+          triggerConfetti();
+
+          setTimeout(() => {
+            score += 10;
+            updateScore();
+            nextWord();
+          }, 1000);
+        }
+      } else {
+        btn.classList.add('bg-red-200');
+        errors++;
+        document.getElementById('errors').textContent = errors;
+        playSound('wrong');
+        drawHangman();
+
+        // Check if game over
+        if (errors >= MAX_ERRORS) {
+          triggerSadRain();
+          setTimeout(() => {
+            nextWord();
+          }, 2500);
+        }
+      }
+    }
+
+    function isWordComplete() {
+      const word = currentWord.word.replace(/ /g, ''); // Remove spaces
+      return word.split('').every(letter => guessedLetters.includes(letter));
+    }
+
+    function nextWord() {
+      loadNewWord();
+    }
+
+    function drawHangman() {
+      const canvas = document.getElementById('hangman-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#7c3aed';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(10, 240);
+      ctx.lineTo(190, 240);
+      ctx.stroke();
+
+      // Vertical pole
+      ctx.beginPath();
+      ctx.moveTo(50, 240);
+      ctx.lineTo(50, 20);
+      ctx.stroke();
+
+      // Horizontal pole
+      ctx.beginPath();
+      ctx.moveTo(50, 20);
+      ctx.lineTo(150, 20);
+      ctx.stroke();
+
+      // Rope
+      ctx.beginPath();
+      ctx.moveTo(150, 20);
+      ctx.lineTo(150, 50);
+      ctx.stroke();
+
+      // Draw body parts based on errors
+      if (errors >= 1) {
+        // Head
+        ctx.beginPath();
+        ctx.arc(150, 70, 20, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (errors >= 2) {
+        // Body
+        ctx.beginPath();
+        ctx.moveTo(150, 90);
+        ctx.lineTo(150, 150);
+        ctx.stroke();
+      }
+
+      if (errors >= 3) {
+        // Left arm
+        ctx.beginPath();
+        ctx.moveTo(150, 110);
+        ctx.lineTo(120, 130);
+        ctx.stroke();
+      }
+
+      if (errors >= 4) {
+        // Right arm
+        ctx.beginPath();
+        ctx.moveTo(150, 110);
+        ctx.lineTo(180, 130);
+        ctx.stroke();
+      }
+
+      if (errors >= 5) {
+        // Left leg
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.lineTo(120, 190);
+        ctx.stroke();
+      }
+
+      if (errors >= 6) {
+        // Right leg
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.lineTo(180, 190);
+        ctx.stroke();
+      }
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+    }
+
+    function showResults() {
+      document.getElementById('game-card').classList.add('hidden');
+      document.getElementById('results-card').classList.remove('hidden');
+      document.getElementById('final-score').textContent = score;
+
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+      }
+    }
+
+    function resetGame() {
+      document.getElementById('results-card').classList.add('hidden');
+      document.getElementById('game-card').classList.remove('hidden');
+      initGame();
+    }
+
+    function goHome() {
+      window.location.href = 'index.html';
+    }
+
+    function capitalizeFirst(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Efecto de Confeti 🎉
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#ec4899', '#a855f7', '#f472b6', '#d946ef', '#f97316']
+        });
+        // Second burst for extra celebration
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0.6 }
+          });
+        }, 200);
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0.6 }
+          });
+        }, 400);
+      }
+    }
+
+    // Lluvia de Caritas Tristes 😢
+    function triggerSadRain() {
+      const container = document.getElementById('sad-overlay');
+      const emojis = ['😢', '😭', '💔', '😿'];
+
+      for (let i = 0; i < 18; i++) {
+        setTimeout(() => {
+          const sadElem = document.createElement('div');
+          sadElem.className = 'sad-face';
+          sadElem.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+          sadElem.style.left = `${Math.random() * 90 + 5}vw`;
+          sadElem.style.fontSize = `${Math.random() * 1.5 + 2}rem`;
+          sadElem.style.animationDuration = `${Math.random() * 1 + 1.8}s`;
+
+          container.appendChild(sadElem);
+
+          // Remover elemento al terminar animación
+          setTimeout(() => {
+            sadElem.remove();
+          }, 2500);
+        }, i * 70);
+      }
+    }
+
+    // Speak the current word
+    function speakWord() {
+      if (currentWord && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(currentWord.word);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.7;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function playSound(type) {
+      // Simple audio feedback using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      if (type === 'correct') {
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+      } else {
+        oscillator.frequency.value = 200;
+        oscillator.type = 'sawtooth';
+      }
+
+      gainNode.gain.value = 0.1;
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.1);
+    }
+  </script>
+</body>
+</html>
