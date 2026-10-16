@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listen & Draw Challenge! 🎨</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    h1, h2, h3, .font-fun {
+      font-family: 'Fredoka', cursive;
+    }
+
+    .btn-pop {
+      transition: all 0.15s ease-out;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(0.95); }
+    }
+    .speaker-pulse {
+      animation: pulse-ring 2s infinite;
+    }
+
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 antialiased p-3 md:p-6">
+
+  <!-- Header -->
+  <header class="max-w-5xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60">
+    <div class="flex items-center gap-3 mb-3 sm:mb-0">
+      <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2.5 rounded-xl shadow-md text-lg flex items-center justify-center w-10 h-10 transition btn-pop" title="Volver al menú">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="bg-amber-400 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12 cursor-pointer" onclick="resetGame()">
+        <i class="fa-solid fa-paintbrush"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-600 tracking-wide leading-none">Listen & Draw</h1>
+        <p class="text-xs md:text-sm font-semibold text-pink-500">¡Práctica de Examen (15 Preguntas)! 🎯</p>
+      </div>
+    </div>
+
+    <!-- Progreso -->
+    <div class="flex items-center gap-4 bg-amber-100/80 px-5 py-2.5 rounded-full border-2 border-amber-300 shadow-inner">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-indigo-600 text-xl"></i>
+        <span class="font-fun text-xl font-bold text-indigo-800">
+          Pregunta <span id="current-q">1</span> de <span id="total-q">15</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-5xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
+
+    <!-- Tarjeta del Juego -->
+    <section id="game-card" class="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative">
+
+      <!-- Barra superior de instrucción -->
+      <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+
+        <div class="flex items-center gap-4 text-left flex-1">
+          <button onclick="speakInstruction()" title="Escuchar instrucción" class="speaker-pulse bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl shadow-lg transition btn-pop flex-shrink-0">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+          <div>
+            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Instruction / Instrucción</span>
+            <h2 id="instruction-text" class="text-lg md:text-xl font-bold text-slate-800 font-fun leading-snug">
+              Loading...
+            </h2>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Zona de Escenario Interactivo / Lienzo Ampliado -->
+      <div class="relative bg-slate-50 border-4 border-indigo-100 rounded-3xl overflow-hidden shadow-inner mb-6 flex flex-col items-center justify-center min-h-[460px] md:min-h-[540px]" id="canvas-container">
+
+        <!-- Elementos HTML interactivos -->
+        <div id="scene-bg" class="w-full h-full absolute inset-0 flex items-center justify-center p-6 select-none">
+          <!-- Contenido dinámico según el ejercicio -->
+        </div>
+
+        <!-- Canvas para dibujar -->
+        <canvas id="paint-canvas" class="absolute inset-0 z-10 cursor-crosshair"></canvas>
+      </div>
+
+      <!-- Barra de herramientas para Dibujar / Colorear -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-100 p-4 rounded-2xl border border-slate-200" id="tools-bar">
+
+        <!-- Paleta de Colores -->
+        <div class="flex items-center gap-2 md:gap-3">
+          <span class="text-xs font-bold text-slate-500 uppercase">Color:</span>
+          <button onclick="setColor('#2563eb')" class="w-9 h-9 rounded-full bg-blue-600 border-2 border-white shadow hover:scale-110 transition"></button>
+          <button onclick="setColor('#dc2626')" class="w-9 h-9 rounded-full bg-red-600 border-2 border-white shadow hover:scale-110 transition"></button>
+          <button onclick="setColor('#16a34a')" class="w-9 h-9 rounded-full bg-green-600 border-2 border-white shadow hover:scale-110 transition"></button>
+          <button onclick="setColor('#d97706')" class="w-9 h-9 rounded-full bg-amber-600 border-2 border-white shadow hover:scale-110 transition"></button>
+          <button onclick="setColor('#7c3aed')" class="w-9 h-9 rounded-full bg-purple-600 border-2 border-white shadow hover:scale-110 transition"></button>
+          <button onclick="setColor('#8b4513')" class="w-9 h-9 rounded-full bg-[rgb(139,69,19)] border-2 border-white shadow hover:scale-110 transition" title="Marrón / Brown"></button>
+          <button onclick="setColor('#000000')" class="w-9 h-9 rounded-full bg-black border-2 border-white shadow hover:scale-110 transition"></button>
+        </div>
+
+        <!-- Acciones del Canvas -->
+        <div class="flex items-center gap-3">
+          <button onclick="clearCanvas()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold px-4 py-2.5 rounded-xl text-sm transition btn-pop flex items-center gap-2">
+            <i class="fa-solid fa-eraser"></i> Borrar Dibujo
+          </button>
+          <button onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition btn-pop flex items-center gap-2 shadow-lg">
+            Siguiente <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Pantalla Final -->
+    <section id="results-card" class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl border-4 border-white hidden">
+      <div class="w-24 h-24 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-inner border-2 border-amber-300">
+        <i class="fa-solid fa-star animate-bounce"></i>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-800 mb-2 font-fun">¡Práctica de 15 Preguntas Terminada! 🎉</h2>
+      <p class="text-slate-600 font-medium mb-6">Completaste con éxito todo el temario de repaso para tu examen.</p>
+
+      <div class="flex flex-col gap-3">
+        <button onclick="resetGame()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Volver a Practicar
+        </button>
+        <button onclick="goHome()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
+          <i class="fa-solid fa-home"></i> Menú Principal
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Script del Juego -->
+  <script>
+    /* ============================================================
+        DATOS DE LAS 15 PREGUNTAS DEL EXAMEN
+    ============================================================ */
+    const exercises = [
+      {
+        id: 1,
+        instruction: "Draw a window next to the bed. Circle the correct article: a / an.",
+        audioText: "Draw a window next to the bed. Circle the correct article a or an.",
+        type: "draw_and_choice",
+        render: () => `
+          <div class="flex flex-col items-center gap-8 w-full max-w-2xl">
+            <div class="flex items-center justify-center gap-12 w-full">
+              <div class="text-9xl">🛏️</div>
+              <div class="border-4 border-dashed border-indigo-300 bg-white/70 rounded-3xl w-44 h-44 md:w-52 md:h-52 flex items-center justify-center text-indigo-400 text-sm font-bold text-center p-4 shadow-sm">
+                Draw Window Here ✏️
+              </div>
+            </div>
+            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 flex items-center gap-4 z-20">
+              <span class="font-bold text-slate-700 text-lg">Select article:</span>
+              <button onclick="selectArticle('a', this)" class="choice-btn text-3xl font-bold px-6 py-2.5 bg-white rounded-xl border-2 border-slate-200 hover:border-indigo-500 shadow-sm">a</button>
+              <button onclick="selectArticle('an', this)" class="choice-btn text-3xl font-bold px-6 py-2.5 bg-white rounded-xl border-2 border-slate-200 hover:border-indigo-500 shadow-sm">an</button>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 2,
+        instruction: "Draw a window between the small boy and fridge.",
+        audioText: "Draw a window between the small boy and fridge.",
+        type: "draw",
+        render: () => `
+          <div class="flex items-center justify-around w-full max-w-3xl gap-4">
+            <div class="text-center">
+              <div class="text-8xl md:text-9xl">👦</div>
+              <span class="text-sm font-bold text-slate-500">Small boy</span>
+            </div>
+            <div class="border-4 border-dashed border-indigo-300 bg-white/70 rounded-3xl w-44 h-44 md:w-52 md:h-52 flex items-center justify-center text-indigo-400 text-sm font-bold text-center p-4 shadow-sm">
+              Draw Window Here ✏️
+            </div>
+            <div class="text-center">
+              <div class="text-8xl md:text-9xl">🧊</div>
+              <span class="text-sm font-bold text-slate-500">Fridge</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 3,
+        instruction: "Draw a cat on the couch.",
+        audioText: "Draw a cat on the couch.",
+        type: "draw",
+        render: () => `
+          <div class="flex flex-col items-center">
+            <div class="text-[10rem] md:text-[13rem] leading-none">🛋️</div>
+            <span class="text-base font-bold text-slate-500 mt-2">Couch</span>
+          </div>
+        `
+      },
+      {
+        id: 4,
+        instruction: "Complete the word BALL.",
+        audioText: "Complete the word BALL.",
+        type: "complete_word",
+        render: () => `
+          <div class="flex flex-col items-center gap-8">
+            <div class="text-9xl md:text-[10rem]">⚽</div>
+            <div class="flex gap-4 text-5xl md:text-6xl font-fun font-bold text-indigo-900 z-20">
+              <span class="w-16 h-20 border-b-4 border-indigo-600 flex items-center justify-center">B</span>
+              <input type="text" maxlength="1" class="w-16 h-20 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50 rounded-t-xl" />
+              <input type="text" maxlength="1" class="w-16 h-20 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50 rounded-t-xl" />
+              <span class="w-16 h-20 border-b-4 border-indigo-600 flex items-center justify-center">L</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 5,
+        instruction: "Color the girl that is in the bathroom.",
+        audioText: "Color the girl that is in the bathroom.",
+        type: "draw",
+        render: () => `
+          <div class="flex flex-wrap items-center justify-center gap-6 w-full max-w-4xl">
+            <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 text-center shadow-sm w-56">
+              <div class="text-7xl mb-2">🛋️ 👧</div>
+              <span class="text-sm font-bold text-slate-400">Living Room</span>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border-4 border-indigo-400 text-center shadow-md w-64 scale-105">
+              <div class="text-7xl mb-2">🛁 👧</div>
+              <span class="text-base font-bold text-indigo-600">Bathroom</span>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 text-center shadow-sm w-56">
+              <div class="text-7xl mb-2">🍳 👧</div>
+              <span class="text-sm font-bold text-slate-400">Kitchen</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 6,
+        instruction: "Circle the lamp that is on the living room table. Draw the table brown.",
+        audioText: "Circle the lamp that is on the living room table. Draw the table brown.",
+        type: "draw",
+        render: () => `
+          <div class="flex items-center justify-around w-full max-w-3xl gap-6">
+            <div class="text-center bg-white p-6 rounded-3xl border-2 border-slate-200 w-60">
+              <div class="text-7xl">💡</div>
+              <div class="text-6xl my-2">🛏️</div>
+              <span class="text-sm font-bold text-slate-400">Bedroom</span>
+            </div>
+            <div class="text-center bg-white p-8 rounded-3xl border-4 border-amber-400 shadow-lg w-72">
+              <div class="text-7xl">💡</div>
+              <div class="text-7xl my-2">🪑 🛋️</div>
+              <span class="text-base font-bold text-amber-700">Living Room Table</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 7,
+        instruction: "Complete the word LIVING ROOM.",
+        audioText: "Complete the word LIVING ROOM.",
+        type: "complete_word",
+        render: () => `
+          <div class="flex flex-col items-center gap-8">
+            <div class="text-9xl">🛋️</div>
+            <div class="flex flex-wrap justify-center gap-2 md:gap-3 text-4xl md:text-5xl font-fun font-bold text-indigo-900 z-20">
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">L</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">V</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">N</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">G</span>
+              <span class="w-8 h-16"></span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">R</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">M</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 8,
+        instruction: "Circle the toilet.",
+        audioText: "Circle the toilet.",
+        type: "draw",
+        render: () => `
+          <div class="flex items-center justify-around w-full max-w-3xl">
+            <div class="text-8xl md:text-9xl">🛁</div>
+            <div class="text-8xl md:text-9xl bg-white/80 p-4 rounded-3xl border-2 border-indigo-100 shadow-sm">🚽</div>
+            <div class="text-8xl md:text-9xl">🚰</div>
+          </div>
+        `
+      },
+      {
+        id: 9,
+        instruction: "Draw a plant behind the sofa in the living room.",
+        audioText: "Draw a plant behind the sofa in the living room.",
+        type: "draw",
+        render: () => `
+          <div class="flex flex-col items-center">
+            <div class="text-[10rem] md:text-[13rem] leading-none">🛋️</div>
+            <span class="text-base font-bold text-slate-500 mt-2">Sofa in Living Room</span>
+          </div>
+        `
+      },
+      {
+        id: 10,
+        instruction: "Draw a ball under the table in the dining room.",
+        audioText: "Draw a ball under the table in the dining room.",
+        type: "draw",
+        render: () => `
+          <div class="flex flex-col items-center">
+            <div class="text-[9rem] md:text-[11rem] leading-none">🍽️</div>
+            <span class="text-base font-bold text-slate-500 mt-2">Dining Room Table</span>
+          </div>
+        `
+      },
+      {
+        id: 11,
+        instruction: "Complete the word KITCHEN.",
+        audioText: "Complete the word KITCHEN.",
+        type: "complete_word",
+        render: () => `
+          <div class="flex flex-col items-center gap-8">
+            <div class="text-9xl">🍳</div>
+            <div class="flex gap-4 text-4xl md:text-5xl font-fun font-bold text-indigo-900 z-20">
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">K</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">T</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">C</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">E</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">N</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 12,
+        instruction: "Circle the big dog next to the TV.",
+        audioText: "Circle the big dog next to the TV.",
+        type: "draw",
+        render: () => `
+          <div class="flex items-center justify-around w-full max-w-3xl">
+            <div class="text-center bg-white p-6 rounded-3xl border-2 border-slate-200 w-56">
+              <div class="text-7xl">📺</div>
+              <span class="text-sm font-bold text-slate-400">Television</span>
+            </div>
+            <div class="text-center bg-white p-6 rounded-3xl border-4 border-indigo-400 shadow-md w-64">
+              <div class="text-8xl">🐶</div>
+              <span class="text-sm font-bold text-indigo-700">Big Dog Next To TV</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 13,
+        instruction: "Draw a duck in the bathtub.",
+        audioText: "Draw a duck in the bathtub.",
+        type: "draw",
+        render: () => `
+          <div class="flex flex-col items-center">
+            <div class="text-[10rem] md:text-[12rem] leading-none">🛁</div>
+            <span class="text-base font-bold text-slate-500 mt-2">Bathtub</span>
+          </div>
+        `
+      },
+      {
+        id: 14,
+        instruction: "Complete the word BEDROOM.",
+        audioText: "Complete the word BEDROOM.",
+        type: "complete_word",
+        render: () => `
+          <div class="flex flex-col items-center gap-8">
+            <div class="text-9xl">🛏️</div>
+            <div class="flex gap-3 text-4xl md:text-5xl font-fun font-bold text-indigo-900 z-20">
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">B</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">D</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">R</span>
+              <input type="text" maxlength="1" class="w-12 h-16 border-b-4 border-indigo-600 text-center uppercase focus:outline-none focus:bg-indigo-50" />
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">O</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">O</span>
+              <span class="w-12 h-16 border-b-4 border-indigo-600 flex items-center justify-center">M</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 15,
+        instruction: "Color the boy that is under the table.",
+        audioText: "Color the boy that is under the table.",
+        type: "draw",
+        render: () => `
+          <div class="flex items-center justify-around w-full max-w-3xl">
+            <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 text-center shadow-sm w-56">
+              <div class="text-7xl mb-2">🪑 👦</div>
+              <span class="text-sm font-bold text-slate-400">Boy on Chair</span>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border-4 border-indigo-400 text-center shadow-md w-64 scale-105">
+              <div class="text-7xl mb-2">🍽️ 👇 👦</div>
+              <span class="text-base font-bold text-indigo-600">Boy Under Table</span>
+            </div>
+          </div>
+        `
+      }
+    ];
+
+    /* ============================================================
+        ESTADO GLOBAL
+    ============================================================ */
+    let currentIndex = 0;
+    let canvas, ctx;
+    let isDrawing = false;
+    let currentColor = '#2563eb';
+
+    /* ============================================================
+        INICIALIZACIÓN Y CANVAS
+    ============================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      canvas = document.getElementById('paint-canvas');
+      ctx = canvas.getContext('2d');
+
+      setupCanvasResize();
+      setupDrawingEvents();
+      loadExercise(0);
+    });
+
+    function setupCanvasResize() {
+      const container = document.getElementById('canvas-container');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    window.addEventListener('resize', () => {
+      setupCanvasResize();
+    });
+
+    function setupDrawingEvents() {
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseleave', stopDrawing);
+
+      canvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        startDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+      });
+      canvas.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        draw({ clientX: touch.clientX, clientY: touch.clientY });
+        e.preventDefault();
+      });
+      canvas.addEventListener('touchend', stopDrawing);
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    function setColor(color) {
+      currentColor = color;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    /* ============================================================
+        LÓGICA DEL JUEGO
+    ============================================================ */
+    function loadExercise(index) {
+      currentIndex = index;
+      const current = exercises[index];
+
+      document.getElementById('current-q').innerText = index + 1;
+      document.getElementById('total-q').innerText = exercises.length;
+      document.getElementById('instruction-text').innerText = current.instruction;
+
+      const bgContainer = document.getElementById('scene-bg');
+      bgContainer.innerHTML = current.render();
+
+      setTimeout(() => {
+        setupCanvasResize();
+        clearCanvas();
+      }, 50);
+
+      setTimeout(() => {
+        speakInstruction();
+      }, 400);
+    }
+
+    function nextQuestion() {
+      if (currentIndex + 1 < exercises.length) {
+        loadExercise(currentIndex + 1);
+      } else {
+        showResults();
+      }
+    }
+
+    function showResults() {
+      document.getElementById('game-card').classList.add('hidden');
+      document.getElementById('results-card').classList.remove('hidden');
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+    }
+
+    function resetGame() {
+      document.getElementById('results-card').classList.add('hidden');
+      document.getElementById('game-card').classList.remove('hidden');
+      loadExercise(0);
+    }
+
+    function goHome() {
+      window.location.href = 'index.html';
+    }
+
+    /* ============================================================
+        SISTEMA DE VOZ Y VALIDACIÓN
+    ============================================================ */
+    function speakInstruction() {
+      const current = exercises[currentIndex];
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(current.audioText);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function selectArticle(selected, btn) {
+      document.querySelectorAll('.choice-btn').forEach(b => {
+        b.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-600');
+      });
+      if (selected === 'a') {
+        btn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
