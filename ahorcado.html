@@ -376,10 +376,34 @@
         INITIALIZATION
     ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
+      // Check if player exists first
+      const storedPlayerName = localStorage.getItem('playerName');
+      if (!storedPlayerName) {
+        console.warn('⚠️ Ahorcado: No player name found');
+        console.warn('   └─ Redirecting to main page...');
+        alert('Please enter your name on the main page first!');
+        window.location.href = 'index.html';
+        return;
+      }
+
       // Initialize Firebase
       if (typeof initializeFirebase === 'function') {
-        initializeFirebase();
-        console.log('🎮 Ahorcado: Firebase initialized');
+        const initialized = initializeFirebase();
+        console.log('🎮 Ahorcado: Firebase initialized:', initialized);
+
+        // Load player from localStorage
+        if (typeof loadPlayerFromStorage === 'function') {
+          const player = loadPlayerFromStorage();
+          if (player) {
+            console.log('🎮 Ahorcado: Player loaded:', player.name);
+            console.log('   └─ Current Total Score:', player.totalScore || 0);
+          } else {
+            console.warn('⚠️ Ahorcado: Player data incomplete, will create on save');
+          }
+        }
+      } else {
+        console.error('❌ Ahorcado: Firebase functions not available');
+        console.error('   └─ Points will not be saved!');
       }
 
       createKeyboard();
