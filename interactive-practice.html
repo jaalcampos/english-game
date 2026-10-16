@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Practice! 🎯</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #d8b4fe 0%, #fbbf24 100%);
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    h1, h2, h3, .font-fun {
+      font-family: 'Fredoka', cursive;
+    }
+
+    .btn-pop {
+      transition: all 0.15s ease-out;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(0.95); }
+    }
+    .speaker-pulse {
+      animation: pulse-ring 2s infinite;
+    }
+
+    .draggable {
+      cursor: grab;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .draggable:active {
+      cursor: grabbing;
+      transform: scale(1.1);
+    }
+    .drop-target {
+      transition: all 0.2s ease;
+    }
+    .drop-target.drag-over {
+      background-color: rgba(139, 92, 246, 0.1);
+      border-color: #7c3aed !important;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 antialiased p-3 md:p-6">
+
+  <!-- Header -->
+  <header class="max-w-5xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60">
+    <div class="flex items-center gap-3 mb-3 sm:mb-0">
+      <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2.5 rounded-xl shadow-md text-lg flex items-center justify-center w-10 h-10 transition btn-pop" title="Volver al menú">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="bg-violet-400 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12 cursor-pointer" onclick="resetGame()">
+        <i class="fa-solid fa-hand-pointer"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-violet-600 tracking-wide leading-none">Interactive Practice</h1>
+        <p class="text-xs md:text-sm font-semibold text-purple-500">Part 2 & 3 - Drag & Answer! 🎯</p>
+      </div>
+    </div>
+
+    <!-- Progreso -->
+    <div class="flex items-center gap-4 bg-purple-100/80 px-5 py-2.5 rounded-full border-2 border-purple-300 shadow-inner">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-violet-600 text-xl"></i>
+        <span class="font-fun text-xl font-bold text-violet-800">
+          Pregunta <span id="current-q">1</span> de <span id="total-q">10</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-5xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
+
+    <!-- Tarjeta del Juego -->
+    <section id="game-card" class="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative">
+
+      <!-- Barra superior de instrucción -->
+      <div class="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-violet-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+
+        <div class="flex items-center gap-4 text-left flex-1">
+          <button onclick="speakInstruction()" title="Escuchar instrucción" class="speaker-pulse bg-violet-600 hover:bg-violet-700 text-white w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl shadow-lg transition btn-pop flex-shrink-0">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+          <div>
+            <span class="text-xs font-bold text-violet-400 uppercase tracking-wider block">Question / Pregunta</span>
+            <h2 id="instruction-text" class="text-lg md:text-xl font-bold text-slate-800 font-fun leading-snug">
+              Loading...
+            </h2>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Zona Interactiva -->
+      <div id="interactive-area" class="relative bg-slate-50 border-4 border-violet-100 rounded-3xl overflow-hidden shadow-inner mb-6 flex flex-col items-center justify-center min-h-[460px] md:min-h-[540px] p-6">
+        <!-- Contenido dinámico según el ejercicio -->
+      </div>
+
+      <!-- Barra de acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-100 p-4 rounded-2xl border border-slate-200">
+        <button onclick="checkAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition btn-pop flex items-center gap-2 shadow-lg">
+          <i class="fa-solid fa-check"></i> Verificar Respuesta
+        </button>
+        <button onclick="nextQuestion()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition btn-pop flex items-center gap-2 shadow-lg">
+          Siguiente <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- Pantalla Final -->
+    <section id="results-card" class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl border-4 border-white hidden">
+      <div class="w-24 h-24 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-inner border-2 border-purple-300">
+        <i class="fa-solid fa-trophy animate-bounce"></i>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-800 mb-2 font-fun">¡Práctica Interactiva Completada! 🎉</h2>
+      <p class="text-slate-600 font-medium mb-6">Completaste con éxito las Part 2 & 3 del examen.</p>
+
+      <div class="flex flex-col gap-3">
+        <button onclick="resetGame()" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Volver a Practicar
+        </button>
+        <button onclick="goHome()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
+          <i class="fa-solid fa-home"></i> Menú Principal
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Script del Juego -->
+  <script>
+    /* ============================================================
+        DATOS DE LAS PREGUNTAS INTERACTIVAS (PART 2 & 3)
+    ============================================================ */
+    const exercises = [
+      // PART 2 - Drag and Drop Instructions
+      {
+        id: 1,
+        instruction: "Put the pillow on the bed.",
+        audioText: "Put the pillow on the bed.",
+        type: "drag_drop",
+        question: "What is this?",
+        questionAudio: "What is this?",
+        items: [
+          { id: "pillow", emoji: "💤", name: "pillow", draggable: true },
+          { id: "bed", emoji: "🛏️", name: "bed", target: true }
+        ]
+      },
+      {
+        id: 2,
+        instruction: "Put the pillow under the bed.",
+        audioText: "Can you put the pillow under the bed?",
+        type: "drag_drop",
+        items: [
+          { id: "pillow", emoji: "💤", name: "pillow", draggable: true },
+          { id: "bed", emoji: "🛏️", name: "bed", target: true }
+        ]
+      },
+      {
+        id: 3,
+        instruction: "Which are the bananas?",
+        audioText: "Which are the bananas?",
+        type: "click_identify",
+        items: [
+          { emoji: "🍌", name: "banana", correct: true },
+          { emoji: "🍎", name: "apple", correct: false },
+          { emoji: "🍊", name: "orange", correct: false }
+        ]
+      },
+      {
+        id: 4,
+        instruction: "Put the banana between the chairs.",
+        audioText: "Now put the banana between the chairs.",
+        type: "drag_drop",
+        items: [
+          { id: "banana", emoji: "🍌", name: "banana", draggable: true },
+          { id: "chair1", emoji: "🪑", name: "chair", target: false },
+          { id: "chair2", emoji: "🪑", name: "chair", target: false },
+          { id: "between", emoji: "⬜", name: "between", target: true }
+        ]
+      },
+      {
+        id: 5,
+        instruction: "What is this?",
+        audioText: "What is this? A ball.",
+        type: "click_identify",
+        question: "ball",
+        items: [
+          { emoji: "⚽", name: "ball", correct: true },
+          { emoji: "🎾", name: "tennis ball", correct: false },
+          { emoji: "🏀", name: "basketball", correct: false }
+        ]
+      },
+      {
+        id: 6,
+        instruction: "Place the ball on the left side of the house.",
+        audioText: "Place the ball on the left side of the house.",
+        type: "drag_drop",
+        items: [
+          { id: "ball", emoji: "⚽", name: "ball", draggable: true },
+          { id: "house", emoji: "🏠", name: "house", target: false },
+          { id: "left", emoji: "⬜", name: "left side", target: true }
+        ]
+      },
+      // PART 3 - Describe and Answer
+      {
+        id: 7,
+        instruction: "Tell me where is the girl.",
+        audioText: "Tell me where is the girl. The girl is in the living room.",
+        type: "multiple_choice",
+        question: "Where is the girl? 👧",
+        options: [
+          { text: "In the living room", correct: true, emoji: "🛋️" },
+          { text: "In the kitchen", correct: false, emoji: "🍳" },
+          { text: "In the bedroom", correct: false, emoji: "🛏️" }
+        ]
+      },
+      {
+        id: 8,
+        instruction: "What is this?",
+        audioText: "What is this? This is a book.",
+        type: "click_identify",
+        question: "book",
+        items: [
+          { emoji: "📖", name: "book", correct: true },
+          { emoji: "📱", name: "phone", correct: false },
+          { emoji: "✏️", name: "pencil", correct: false }
+        ]
+      },
+      {
+        id: 9,
+        instruction: "Where is the cat?",
+        audioText: "Where is the cat? The cat is on the couch.",
+        type: "multiple_choice",
+        question: "Where is the cat? 🐱",
+        options: [
+          { text: "On the couch", correct: true, emoji: "🛋️" },
+          { text: "Under the table", correct: false, emoji: "🪑" },
+          { text: "In the box", correct: false, emoji: "📦" }
+        ]
+      },
+      {
+        id: 10,
+        instruction: "What color is the ball?",
+        audioText: "What color is the ball? The ball is green.",
+        type: "multiple_choice",
+        question: "What color is the ball? ⚽",
+        options: [
+          { text: "Green", correct: true, emoji: "🟢" },
+          { text: "Red", correct: false, emoji: "🔴" },
+          { text: "Blue", correct: false, emoji: "🔵" }
+        ]
+      }
+    ];
+
+    /* ============================================================
+        ESTADO GLOBAL
+    ============================================================ */
+    let currentIndex = 0;
+    let userAnswer = null;
+
+    /* ============================================================
+        INICIALIZACIÓN
+    ============================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadExercise(0);
+    });
+
+    /* ============================================================
+        LÓGICA DEL JUEGO
+    ============================================================ */
+    function loadExercise(index) {
+      currentIndex = index;
+      const current = exercises[index];
+      userAnswer = null;
+
+      document.getElementById('current-q').innerText = index + 1;
+      document.getElementById('total-q').innerText = exercises.length;
+      document.getElementById('instruction-text').innerText = current.instruction;
+
+      const interactiveArea = document.getElementById('interactive-area');
+
+      if (current.type === 'multiple_choice') {
+        renderMultipleChoice(current);
+      } else if (current.type === 'click_identify') {
+        renderClickIdentify(current);
+      } else if (current.type === 'drag_drop') {
+        renderDragDrop(current);
+      }
+
+      setTimeout(() => {
+        speakInstruction();
+      }, 400);
+    }
+
+    function renderMultipleChoice(exercise) {
+      const area = document.getElementById('interactive-area');
+      area.innerHTML = `
+        <div class="flex flex-col items-center gap-6 w-full max-w-4xl">
+          <h3 class="text-2xl md:text-3xl font-bold text-violet-700 font-fun mb-2">${exercise.question}</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+            ${exercise.options.map((opt, i) => `
+              <button onclick="selectOption(${i}, ${opt.correct})" class="option-btn bg-white hover:bg-violet-50 border-4 border-slate-200 hover:border-violet-400 rounded-3xl p-6 transition btn-pop flex flex-col items-center gap-4 min-h-[200px]">
+                <div class="w-32 h-32 flex items-center justify-center text-8xl">
+                  ${opt.emoji}
+                </div>
+                <div class="text-center">
+                  <p class="text-lg font-bold text-slate-800">${opt.text}</p>
+                </div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderClickIdentify(exercise) {
+      const area = document.getElementById('interactive-area');
+      area.innerHTML = `
+        <div class="flex flex-col items-center gap-8 w-full max-w-3xl">
+          <h3 class="text-2xl font-bold text-violet-700 font-fun">Click on: ${exercise.question || exercise.instruction}</h3>
+          <div class="flex items-center justify-center gap-8 flex-wrap">
+            ${exercise.items.map((item, i) => `
+              <button onclick="selectItem(${i}, ${item.correct})" class="item-btn bg-white hover:bg-violet-50 border-4 border-slate-200 hover:border-violet-400 rounded-3xl p-8 transition btn-pop">
+                <div class="text-8xl">${item.emoji}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDragDrop(exercise) {
+      const area = document.getElementById('interactive-area');
+
+      // Special layout for "between" exercises
+      const hasBetween = exercise.items.some(item => item.id === 'between');
+      const hasLeftRight = exercise.items.some(item => item.id === 'left');
+
+      if (hasBetween) {
+        // Layout for "between the chairs"
+        const draggable = exercise.items.find(item => item.draggable);
+        const chair1 = exercise.items.find(item => item.id === 'chair1');
+        const chair2 = exercise.items.find(item => item.id === 'chair2');
+        const between = exercise.items.find(item => item.id === 'between');
+
+        area.innerHTML = `
+          <div class="flex flex-col items-center gap-8 w-full">
+            <div class="text-center mb-4">
+              <div class="text-8xl draggable" id="${draggable.id}" draggable="true" data-name="${draggable.name}">
+                ${draggable.emoji}
+              </div>
+              <span class="text-sm font-bold text-slate-500 mt-2 block">${draggable.name}</span>
+            </div>
+            <div class="flex items-center justify-center gap-4">
+              <div class="text-center">
+                <div class="text-8xl" id="${chair1.id}">
+                  ${chair1.emoji}
+                </div>
+                <span class="text-sm font-bold text-slate-500 mt-2 block">${chair1.name}</span>
+              </div>
+              <div class="text-center">
+                <div class="text-6xl drop-target border-4 border-dashed border-violet-400 p-8 rounded-2xl min-w-[120px] min-h-[120px] flex items-center justify-center bg-violet-50/30" id="${between.id}" data-name="${between.name}">
+
+                </div>
+                <span class="text-sm font-bold text-violet-600 mt-2 block">${between.name}</span>
+              </div>
+              <div class="text-center">
+                <div class="text-8xl" id="${chair2.id}">
+                  ${chair2.emoji}
+                </div>
+                <span class="text-sm font-bold text-slate-500 mt-2 block">${chair2.name}</span>
+              </div>
+            </div>
+            <p class="text-slate-500 text-sm italic">Drag the ${draggable.name} to the space between the chairs</p>
+          </div>
+        `;
+      } else if (hasLeftRight) {
+        // Layout for "left side of the house"
+        const draggable = exercise.items.find(item => item.draggable);
+        const house = exercise.items.find(item => item.id === 'house');
+        const left = exercise.items.find(item => item.id === 'left');
+
+        area.innerHTML = `
+          <div class="flex flex-col items-center gap-8 w-full">
+            <div class="text-center mb-4">
+              <div class="text-8xl draggable" id="${draggable.id}" draggable="true" data-name="${draggable.name}">
+                ${draggable.emoji}
+              </div>
+              <span class="text-sm font-bold text-slate-500 mt-2 block">${draggable.name}</span>
+            </div>
+            <div class="flex items-center justify-center gap-4">
+              <div class="text-center">
+                <div class="text-6xl drop-target border-4 border-dashed border-violet-400 p-8 rounded-2xl min-w-[120px] min-h-[120px] flex items-center justify-center bg-violet-50/30" id="${left.id}" data-name="${left.name}">
+
+                </div>
+                <span class="text-sm font-bold text-violet-600 mt-2 block">${left.name}</span>
+              </div>
+              <div class="text-center">
+                <div class="text-8xl" id="${house.id}">
+                  ${house.emoji}
+                </div>
+                <span class="text-sm font-bold text-slate-500 mt-2 block">${house.name}</span>
+              </div>
+            </div>
+            <p class="text-slate-500 text-sm italic">Drag the ${draggable.name} to the left side of the ${house.name}</p>
+          </div>
+        `;
+      } else {
+        // Default layout for simple drag and drop
+        area.innerHTML = `
+          <div class="flex flex-col items-center gap-8 w-full">
+            <div class="flex items-center justify-around gap-8 flex-wrap">
+              ${exercise.items.map(item => `
+                <div class="text-center">
+                  <div class="text-8xl ${item.draggable ? 'draggable' : ''} ${item.target ? 'drop-target border-4 border-dashed border-violet-400 p-4 rounded-2xl min-w-[120px] min-h-[120px] flex items-center justify-center' : ''}"
+                       id="${item.id}"
+                       ${item.draggable ? 'draggable="true"' : ''}
+                       data-name="${item.name}">
+                    ${item.emoji}
+                  </div>
+                  <span class="text-sm font-bold text-slate-500 mt-2 block">${item.name}</span>
+                </div>
+              `).join('')}
+            </div>
+            <p class="text-slate-500 text-sm italic">Drag the item to the target area</p>
+          </div>
+        `;
+      }
+
+      // Initialize drag and drop after rendering
+      initDragDrop(exercise);
+    }
+
+    function initDragDrop(exercise) {
+      const draggables = document.querySelectorAll('.draggable');
+      const dropTargets = document.querySelectorAll('.drop-target');
+
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', e.target.id);
+          e.target.style.opacity = '0.5';
+        });
+
+        draggable.addEventListener('dragend', (e) => {
+          e.target.style.opacity = '1';
+        });
+      });
+
+      dropTargets.forEach(target => {
+        target.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          target.classList.add('border-violet-600', 'bg-violet-50');
+        });
+
+        target.addEventListener('dragleave', (e) => {
+          target.classList.remove('border-violet-600', 'bg-violet-50');
+        });
+
+        target.addEventListener('drop', (e) => {
+          e.preventDefault();
+          target.classList.remove('border-violet-600', 'bg-violet-50');
+
+          const draggedId = e.dataTransfer.getData('text/plain');
+          const draggedElement = document.getElementById(draggedId);
+
+          if (draggedElement) {
+            // Move the dragged element to the target
+            target.innerHTML = draggedElement.innerHTML;
+            target.classList.add('border-emerald-500', 'bg-emerald-100');
+
+            // Mark as answered correctly (simplified - assumes any drop is correct)
+            // In a real scenario, you'd check if the target is the correct one
+            const targetItem = exercise.items.find(item => item.id === target.id);
+            if (targetItem && targetItem.target) {
+              userAnswer = true;
+            }
+          }
+        });
+      });
+    }
+
+    function selectOption(index, isCorrect) {
+      userAnswer = isCorrect;
+      const btns = document.querySelectorAll('.option-btn');
+      btns.forEach((btn, i) => {
+        btn.classList.remove('border-emerald-500', 'bg-emerald-100');
+        if (i === index) {
+          btn.classList.add('border-violet-500', 'bg-violet-100');
+        }
+      });
+    }
+
+    function selectItem(index, isCorrect) {
+      userAnswer = isCorrect;
+      const btns = document.querySelectorAll('.item-btn');
+      btns.forEach((btn, i) => {
+        btn.classList.remove('border-emerald-500', 'bg-emerald-100');
+        if (i === index) {
+          btn.classList.add('border-violet-500', 'bg-violet-100');
+        }
+      });
+    }
+
+    function checkAnswer() {
+      if (userAnswer === null) {
+        alert('Por favor selecciona una respuesta primero');
+        return;
+      }
+
+      if (userAnswer === true) {
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+        alert('¡Correcto! ✅');
+      } else {
+        alert('Intenta de nuevo 🤔');
+      }
+    }
+
+    function nextQuestion() {
+      if (currentIndex + 1 < exercises.length) {
+        loadExercise(currentIndex + 1);
+      } else {
+        showResults();
+      }
+    }
+
+    function showResults() {
+      document.getElementById('game-card').classList.add('hidden');
+      document.getElementById('results-card').classList.remove('hidden');
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+    }
+
+    function resetGame() {
+      document.getElementById('results-card').classList.add('hidden');
+      document.getElementById('game-card').classList.remove('hidden');
+      loadExercise(0);
+    }
+
+    function goHome() {
+      window.location.href = 'index.html';
+    }
+
+    /* ============================================================
+        SISTEMA DE VOZ
+    ============================================================ */
+    function speakInstruction() {
+      const current = exercises[currentIndex];
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(current.audioText);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  </script>
+</body>
+</html>
