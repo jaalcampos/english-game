@@ -13,6 +13,11 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
   <style>
     body {
       font-family: 'Quicksand', sans-serif;
@@ -364,11 +369,19 @@
     let errors = 0;
     let score = 0;
     let usedWords = [];
+    let totalWordsGuessed = 0;
+    let sessionHighScore = 0;
 
     /* ============================================================
         INITIALIZATION
     ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
+      // Initialize Firebase
+      if (typeof initializeFirebase === 'function') {
+        initializeFirebase();
+        console.log('🎮 Ahorcado: Firebase initialized');
+      }
+
       createKeyboard();
       initGame();
     });
@@ -376,6 +389,8 @@
     function initGame() {
       score = 0;
       usedWords = [];
+      totalWordsGuessed = 0;
+      sessionHighScore = 0;
       updateScore();
       loadNewWord();
     }
@@ -482,10 +497,15 @@
         if (isWordComplete()) {
           // Trigger confetti immediately
           triggerConfetti();
+          totalWordsGuessed++;
 
           setTimeout(() => {
             score += 10;
             updateScore();
+
+            // Save progress to Firebase after each word
+            saveProgressToFirebase();
+
             nextWord();
           }, 1000);
         }
@@ -600,9 +620,48 @@
 
     function updateScore() {
       document.getElementById('score').textContent = score;
+
+      // Track session high score
+      if (score > sessionHighScore) {
+        sessionHighScore = score;
+      }
+    }
+
+    // Save progress to Firebase
+    async function saveProgressToFirebase() {
+      if (typeof updatePlayerProgress !== 'function') {
+        console.log('⚠️ Ahorcado: Firebase not available');
+        return;
+      }
+
+      try {
+        console.log('🎮 Ahorcado: Saving progress...', {
+          score: score,
+          highScore: sessionHighScore,
+          totalWords: totalWordsGuessed
+        });
+
+        const success = await updatePlayerProgress('ahorcado', {
+          highScore: sessionHighScore,
+          totalWords: totalWordsGuessed,
+          lastScore: score,
+          lastPlayed: new Date().toISOString()
+        });
+
+        if (success) {
+          console.log('✅ Ahorcado: Progress saved!');
+        } else {
+          console.error('❌ Ahorcado: Failed to save progress');
+        }
+      } catch (error) {
+        console.error('❌ Ahorcado: Error saving progress:', error);
+      }
     }
 
     function showResults() {
+      // Save final progress
+      saveProgressToFirebase();
+
       document.getElementById('game-card').classList.add('hidden');
       document.getElementById('results-card').classList.remove('hidden');
       document.getElementById('final-score').textContent = score;
