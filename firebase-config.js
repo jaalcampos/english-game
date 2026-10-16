@@ -113,14 +113,25 @@ async function updatePlayerProgress(category, data) {
       lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Update total score if provided
+    // For regular quiz categories (rooms, furniture, etc.)
     if (data.score !== undefined) {
       updateData.totalScore = firebase.firestore.FieldValue.increment(data.score);
     }
 
-    // Update total stars if provided
     if (data.stars !== undefined) {
       updateData.totalStars = firebase.firestore.FieldValue.increment(data.stars);
+    }
+
+    // For ahorcado game (uses highScore instead of score)
+    if (category === 'ahorcado' && data.highScore !== undefined) {
+      // Get current high score from Firebase
+      const doc = await playerRef.get();
+      const currentHighScore = doc.data()?.progress?.ahorcado?.highScore || 0;
+
+      // Only update if new high score is better
+      if (data.highScore > currentHighScore) {
+        updateData[`progress.ahorcado.highScore`] = data.highScore;
+      }
     }
 
     await playerRef.update(updateData);
