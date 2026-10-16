@@ -391,6 +391,7 @@
       usedWords = [];
       totalWordsGuessed = 0;
       sessionHighScore = 0;
+      lastSavedScore = 0; // Reset saved score tracker
       updateScore();
       loadNewWord();
     }
@@ -627,21 +628,55 @@
       }
     }
 
+    // Update global score display (read from Firebase)
+    function updateGlobalScoreDisplay() {
+      if (typeof getCurrentPlayer === 'function') {
+        const player = getCurrentPlayer();
+        if (player) {
+          document.getElementById('score').textContent = player.totalScore || 0;
+          console.log('📊 Updated display - Total Score:', player.totalScore);
+        }
+      }
+    }
+
     // Save progress to Firebase
+    let lastSavedScore = 0; // Track what we've already saved
+
     async function saveProgressToFirebase() {
       if (typeof updatePlayerProgress !== 'function') {
         console.log('⚠️ Ahorcado: Firebase not available');
         return;
       }
 
+      if (typeof getCurrentPlayer !== 'function') {
+        console.log('⚠️ Ahorcado: getCurrentPlayer not available');
+        return;
+      }
+
       try {
+        // Calculate new points earned since last save
+        const newPoints = score - lastSavedScore;
+
+        if (newPoints === 0) {
+          console.log('⏭️ Ahorcado: No new points to save');
+          return;
+        }
+
+        const currentPlayer = getCurrentPlayer();
+        const currentTotalScore = currentPlayer?.totalScore || 0;
+
         console.log('🎮 Ahorcado: Saving progress...', {
-          score: score,
+          playerName: currentPlayer?.name,
+          currentTotalScore: currentTotalScore,
+          sessionScore: score,
+          newPoints: newPoints,
+          newTotalWillBe: currentTotalScore + newPoints,
           highScore: sessionHighScore,
           totalWords: totalWordsGuessed
         });
 
         const success = await updatePlayerProgress('ahorcado', {
+          score: newPoints,  // This will be added to totalScore in Firebase
           highScore: sessionHighScore,
           totalWords: totalWordsGuessed,
           lastScore: score,
@@ -649,7 +684,16 @@
         });
 
         if (success) {
+          lastSavedScore = score; // Update what we've saved
+
+          // Refresh current player data from Firebase
+          const updatedPlayer = getCurrentPlayer();
+          const newTotalScore = updatedPlayer?.totalScore || 0;
+
           console.log('✅ Ahorcado: Progress saved!');
+          console.log('   ├─ Points added: +' + newPoints);
+          console.log('   ├─ New totalScore: ' + newTotalScore);
+          console.log('   └─ Check Firebase Console to verify!');
         } else {
           console.error('❌ Ahorcado: Failed to save progress');
         }
