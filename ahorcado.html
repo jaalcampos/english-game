@@ -377,7 +377,7 @@
     ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
       // Check if player exists first
-      const storedPlayerName = localStorage.getItem('playerName');
+      const storedPlayerName = localStorage.getItem('currentPlayer');
       if (!storedPlayerName) {
         console.warn('⚠️ Ahorcado: No player name found');
         console.warn('   └─ Redirecting to main page...');
