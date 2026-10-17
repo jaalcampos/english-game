@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ahorcado - Hangman Game! 🎯</title>
+  <title>English Vocabulary Quest! 🌟</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Canvas Confetti Library -->
@@ -21,7 +21,7 @@
   <style>
     body {
       font-family: 'Quicksand', sans-serif;
-      background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+      background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
       min-height: 100vh;
       user-select: none;
     }
@@ -60,19 +60,37 @@
       }
     }
 
-    .btn-pop {
-      transition: all 0.15s ease-out;
-      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+    /* Card bounce hover */
+    .hover-bounce {
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
     }
-    .btn-pop:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    .hover-bounce:hover {
+      transform: translateY(-6px) scale(1.02);
     }
-    .btn-pop:active {
-      transform: translateY(3px);
-      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    .hover-bounce:active {
+      transform: translateY(2px) scale(0.98);
     }
 
+    /* Custom buttons animation */
+    .btn-pop {
+      transition: all 0.15s ease-out;
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 11px 0 rgba(0, 0, 0, 0.15);
+    }
+    .btn-pop:active {
+      transform: translateY(4px);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    /* Custom progress bar transition */
+    .progress-bar-fill {
+      transition: width 0.4s ease-out;
+    }
+
+    /* Pulse effects */
     @keyframes pulse-ring {
       0% { transform: scale(0.95); }
       50% { transform: scale(1.05); }
@@ -82,34 +100,13 @@
       animation: pulse-ring 2s infinite;
     }
 
-    .letter-box {
-      width: 50px;
-      height: 60px;
-      border-bottom: 4px solid #7c3aed;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #1e293b;
+    /* Pop animation for word emoji */
+    .emoji-pop {
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-
-    .keyboard-btn {
-      width: 45px;
-      height: 45px;
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-
-    .keyboard-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    #hangman-canvas {
-      border: 4px solid #7c3aed;
-      border-radius: 1rem;
-      background: white;
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
     }
   </style>
 </head>
@@ -118,667 +115,828 @@
   <!-- Container para la animación de caritas tristes -->
   <div id="sad-overlay"></div>
 
-  <!-- Header -->
-  <header class="max-w-5xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60">
-    <div class="flex items-center gap-3 mb-3 sm:mb-0">
-      <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2.5 rounded-xl shadow-md text-lg flex items-center justify-center w-10 h-10 transition btn-pop" title="Volver al menú">
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
-      <div class="bg-pink-500 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12 cursor-pointer" onclick="resetGame()">
-        <i class="fa-solid fa-gamepad"></i>
+  <!-- Player Name Modal -->
+  <div id="player-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-4 border-white relative">
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 text-white rounded-full flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <h2 class="text-3xl font-bold text-slate-800 mb-2 font-fun">Welcome! 👋</h2>
+        <p class="text-slate-600 font-medium">What's your name?</p>
+      </div>
+
+      <form onsubmit="setPlayerName(event)" class="space-y-4">
+        <div>
+          <input
+            type="text"
+            id="player-name-input"
+            placeholder="Enter your name..."
+            required
+            minlength="2"
+            maxlength="20"
+            class="w-full px-6 py-4 rounded-2xl border-4 border-purple-200 focus:border-purple-400 focus:outline-none text-lg font-bold text-center text-slate-800 bg-purple-50"
+            autocomplete="off"
+          >
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-2xl transition btn-pop shadow-lg text-lg">
+          <i class="fa-solid fa-rocket"></i> Start Playing!
+        </button>
+      </form>
+
+      <p class="text-xs text-slate-400 text-center mt-4">Your progress will be saved automatically</p>
+    </div>
+  </div>
+
+  <!-- Header con título y marcador global -->
+  <header class="max-w-4xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60">
+    <div class="flex items-center gap-3 mb-3 sm:mb-0 cursor-pointer" onclick="showCategoryMenu()">
+      <div class="bg-amber-400 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12">
+        <i class="fa-solid fa-graduation-cap"></i>
       </div>
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-pink-600 tracking-wide leading-none">Ahorcado Game</h1>
-        <p class="text-xs md:text-sm font-semibold text-purple-500">Guess the Word! 🎯</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-600 tracking-wide leading-none">English Adventure</h1>
+        <p class="text-xs md:text-sm font-semibold text-pink-500">
+          <span id="player-name-display">Player</span> - ¡Repasa tu vocabulario! ✨
+        </p>
       </div>
     </div>
 
-    <!-- Score -->
-    <div class="flex items-center gap-4 bg-purple-100/80 px-5 py-2.5 rounded-full border-2 border-purple-300 shadow-inner">
-      <div class="flex items-center gap-2">
-        <i class="fa-solid fa-trophy text-yellow-500 text-xl"></i>
-        <span class="font-fun text-xl font-bold text-purple-800">
-          Score: <span id="score">0</span>
-        </span>
+    <!-- Puntuación Global -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4 bg-amber-100/80 px-5 py-2.5 rounded-full border-2 border-amber-300 shadow-inner">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-star text-amber-500 text-2xl animate-spin-slow"></i>
+          <span id="global-stars" class="font-fun text-2xl font-bold text-amber-700">0</span>
+        </div>
+        <div class="h-6 w-0.5 bg-amber-300"></div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-trophy text-orange-500 text-xl"></i>
+          <span id="global-score" class="font-fun text-xl font-bold text-orange-700">0 pts</span>
+        </div>
       </div>
+      <button onclick="showLeaderboard()" class="bg-indigo-500 hover:bg-indigo-600 text-white p-3 rounded-xl shadow-md text-lg flex items-center justify-center w-12 h-12 transition btn-pop" title="Leaderboard">
+        <i class="fa-solid fa-ranking-star"></i>
+      </button>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-5xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
+  <!-- Contenido Principal -->
+  <main class="max-w-4xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
 
-    <!-- Game Card -->
-    <section id="game-card" class="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative">
-
-      <!-- Category Badge -->
+    <!-- 1. PANTALLA DE SELECCIÓN DE CATEGORÍA -->
+    <section id="screen-categories" class="w-full">
       <div class="text-center mb-6">
-        <span id="category-badge" class="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg">
-          Category: Loading...
-        </span>
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2">¿Qué quieres practicar hoy? 🎯</h2>
+        <p class="text-slate-600 font-medium">Selecciona un tema para comenzar el desafío</p>
       </div>
 
-      <!-- Game Area -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="categories-grid">
+        <!-- Generado dinámicamente -->
+      </div>
+    </section>
 
-        <!-- Left Side: Hangman Drawing -->
-        <div class="flex flex-col items-center gap-4">
-          <h3 class="text-xl font-bold text-purple-700 font-fun">Hangman</h3>
-          <canvas id="hangman-canvas" width="200" height="250"></canvas>
+    <!-- 2. PANTALLA DEL JUEGO / QUIZ -->
+    <section id="screen-game" class="w-full hidden">
+      <div class="bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative overflow-hidden">
+        
+        <!-- Top bar del juego -->
+        <div class="flex justify-between items-center mb-6">
+          <button onclick="showCategoryMenu()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-2xl flex items-center gap-2 transition btn-pop text-sm">
+            <i class="fa-solid fa-arrow-left"></i> Categorías
+          </button>
+
+          <!-- Categoría e indicador de progreso -->
           <div class="text-center">
-            <p class="text-sm font-bold text-slate-600">Errors: <span id="errors" class="text-red-500">0</span> / <span id="max-errors">6</span></p>
+            <span id="current-category-badge" class="bg-indigo-100 text-indigo-700 font-bold px-4 py-1.5 rounded-full text-xs md:text-sm tracking-wide">
+              Category
+            </span>
+          </div>
+
+          <!-- Progreso numérico -->
+          <div class="font-fun font-bold text-slate-500 text-lg">
+            <span id="current-question-num" class="text-indigo-600">1</span>/<span id="total-questions-num">10</span>
           </div>
         </div>
 
-        <!-- Right Side: Image & Word -->
-        <div class="flex flex-col items-center gap-6">
-          <div class="flex items-center gap-4">
-            <div class="text-9xl">
-              <span id="word-emoji">🤔</span>
-            </div>
-            <button onclick="speakWord()" title="Listen to the word" class="speaker-pulse bg-pink-500 hover:bg-pink-600 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition btn-pop flex-shrink-0">
+        <!-- Barra de progreso visual -->
+        <div class="w-full bg-slate-200 h-3.5 rounded-full overflow-hidden mb-8 shadow-inner">
+          <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-indigo-500 h-full rounded-full progress-bar-fill" style="width: 0%"></div>
+        </div>
+
+        <!-- Tarjeta de la Pregunta Principal -->
+        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 md:p-8 text-center mb-8 border-2 border-indigo-100 shadow-sm relative">
+          <span class="text-xs uppercase tracking-wider font-bold text-indigo-400 mb-1 block">Palabra en Inglés</span>
+
+          <div class="flex justify-center items-center gap-4 my-4">
+            <h2 id="target-word" class="text-5xl md:text-6xl font-extrabold text-indigo-900 tracking-wide font-fun">
+              Word
+            </h2>
+            <button onclick="speakCurrentWord()" title="Escuchar pronunciación" class="speaker-pulse bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition btn-pop flex-shrink-0">
               <i class="fa-solid fa-volume-high"></i>
             </button>
           </div>
 
-          <!-- Word Spaces -->
-          <div id="word-container" class="flex flex-wrap gap-2 justify-center">
-            <!-- Letter boxes will be generated here -->
-          </div>
+          <p class="text-slate-500 text-xs md:text-sm mt-2">
+            Haz clic en el altavoz 🔊 si necesitas escucharla otra vez.
+          </p>
+        </div>
 
-          <!-- Hint -->
-          <div class="bg-purple-50 rounded-2xl p-4 border-2 border-purple-200">
-            <p class="text-sm font-bold text-purple-600">
-              <i class="fa-solid fa-lightbulb"></i> Hint: <span id="hint-text">...</span>
-            </p>
-          </div>
+        <!-- Opciones de Respuesta -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="options-container">
+          <!-- Opciones dinámicas -->
         </div>
 
       </div>
-
-      <!-- Keyboard -->
-      <div class="bg-slate-50 rounded-3xl p-6 border-4 border-purple-100">
-        <h3 class="text-center text-lg font-bold text-purple-700 font-fun mb-4">Select a Letter</h3>
-        <div id="keyboard" class="flex flex-wrap gap-2 justify-center">
-          <!-- Keyboard buttons will be generated here -->
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
-        <button onclick="nextWord()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition btn-pop flex items-center gap-2 shadow-lg">
-          Next Word <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-
     </section>
 
-    <!-- Results Screen -->
-    <section id="results-card" class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl border-4 border-white hidden">
-      <div class="w-24 h-24 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-inner border-2 border-pink-300">
-        <i class="fa-solid fa-trophy animate-bounce"></i>
-      </div>
-      <h2 class="text-3xl font-bold text-slate-800 mb-2 font-fun">Game Over! 🎉</h2>
-      <p class="text-slate-600 font-medium mb-2">Your Final Score:</p>
-      <p class="text-5xl font-bold text-purple-600 mb-6"><span id="final-score">0</span></p>
+    <!-- 3. PANTALLA DE RESULTADOS / FELICITACIONES -->
+    <section id="screen-results" class="w-full max-w-lg hidden">
+      <div class="bg-white/95 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl border-4 border-white relative">
+        <div class="w-24 h-24 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-inner border-2 border-amber-300">
+          <i class="fa-solid fa-crown animate-bounce"></i>
+        </div>
 
-      <div class="flex flex-col gap-3">
-        <button onclick="resetGame()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop shadow-lg flex items-center justify-center gap-2">
-          <i class="fa-solid fa-rotate-right"></i> Play Again
-        </button>
-        <button onclick="goHome()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
-          <i class="fa-solid fa-home"></i> Main Menu
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2 font-fun">¡Fantástico Trabajo! 🎉</h2>
+        <p class="text-slate-600 font-medium mb-6">Completaste el módulo con éxito</p>
+
+        <!-- Detalle de puntuación -->
+        <div class="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-200 grid grid-cols-2 gap-4">
+          <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+            <span class="text-xs text-indigo-500 font-bold block uppercase">Puntos Ganados</span>
+            <span id="earned-points" class="font-fun text-2xl font-bold text-indigo-700">+0 pts</span>
+          </div>
+          <div class="p-3 bg-amber-50 rounded-xl border border-amber-100">
+            <span class="text-xs text-amber-600 font-bold block uppercase">Estrellas</span>
+            <span id="earned-stars" class="font-fun text-2xl font-bold text-amber-600">⭐ 3</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button onclick="retryCurrentCategory()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
+              <i class="fa-solid fa-rotate-right"></i> Repetir
+            </button>
+            <button onclick="showCategoryMenu()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2 shadow-lg">
+              <i class="fa-solid fa-list"></i> Otra Categoría
+            </button>
+          </div>
+          <button onclick="showLeaderboard()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2">
+            <i class="fa-solid fa-trophy"></i> View Leaderboard
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. LEADERBOARD SCREEN -->
+    <section id="screen-leaderboard" class="w-full max-w-2xl hidden">
+      <div class="bg-white/95 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-2xl border-4 border-white relative">
+
+        <!-- Header -->
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg animate-bounce">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2 font-fun">Top Players 🏆</h2>
+          <p class="text-slate-600 font-medium">The best English learners!</p>
+        </div>
+
+        <!-- Leaderboard List -->
+        <div id="leaderboard-list" class="space-y-3 mb-6">
+          <!-- Dynamically generated -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="leaderboard-loading" class="text-center py-8">
+          <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-500 mb-3"></i>
+          <p class="text-slate-600">Loading leaderboard...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="leaderboard-empty" class="text-center py-8 hidden">
+          <i class="fa-solid fa-users-slash text-4xl text-slate-300 mb-3"></i>
+          <p class="text-slate-600">No players yet. Be the first!</p>
+        </div>
+
+        <!-- Back Button -->
+        <button onclick="showCategoryMenu()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl transition btn-pop flex items-center justify-center gap-2 shadow-lg">
+          <i class="fa-solid fa-arrow-left"></i> Back to Categories
         </button>
       </div>
     </section>
 
   </main>
 
-  <!-- Game Script -->
+  <!-- Footer -->
+  <footer class="text-center text-slate-600 text-xs mt-6 font-semibold">
+    English Practice for Kids • ¡Aprende jugando cada día! ✨
+  </footer>
+
+  <!-- LÓGICA JAVASCRIPT -->
   <script>
     /* ============================================================
-        VOCABULARY DATA
+       BASE DE DATOS DE VOCABULARIO
     ============================================================ */
-    const vocabulary = {
-      rooms: [
-        { word: "KITCHEN", emoji: "🍳", hint: "Where you cook food" },
-        { word: "BEDROOM", emoji: "🛏️", hint: "Where you sleep" },
-        { word: "BATHROOM", emoji: "🚽", hint: "Where you take a shower" },
-        { word: "LIVING ROOM", emoji: "🛋️", hint: "Where you watch TV" },
-        { word: "DINING ROOM", emoji: "🍽️", hint: "Where you eat meals" },
-        { word: "GARAGE", emoji: "🚗", hint: "Where you park the car" },
-        { word: "GARDEN", emoji: "🌻", hint: "Green space outside" },
-        { word: "HOUSE", emoji: "🏠", hint: "Where you live" },
-      ],
-      furniture: [
-        { word: "CHAIR", emoji: "🪑", hint: "You sit on this" },
-        { word: "TABLE", emoji: "🪑", hint: "You eat on this" },
-        { word: "BED", emoji: "🛏️", hint: "You sleep on this" },
-        { word: "SOFA", emoji: "🛋️", hint: "Comfortable seat for many people" },
-        { word: "COUCH", emoji: "🛋️", hint: "Another word for sofa" },
-        { word: "DESK", emoji: "🖥️", hint: "You work or study on this" },
-        { word: "LAMP", emoji: "💡", hint: "Gives you light" },
-        { word: "TV", emoji: "📺", hint: "You watch shows on this" },
-        { word: "WINDOW", emoji: "🪟", hint: "You look outside through this" },
-        { word: "BATH", emoji: "🛁", hint: "You wash yourself here" },
-        { word: "TUB", emoji: "🛁", hint: "You take a bath in this" },
-        { word: "SINK", emoji: "🚿", hint: "Where you wash your hands" },
-        { word: "TOILET", emoji: "🚽", hint: "You use this in the bathroom" },
-      ],
-      objects: [
-        { word: "BOOK", emoji: "📖", hint: "You read this" },
-        { word: "PHONE", emoji: "📱", hint: "You call people with this" },
-        { word: "PENCIL", emoji: "✏️", hint: "You write with this" },
-        { word: "CLOCK", emoji: "🕐", hint: "Tells you the time" },
-        { word: "BALL", emoji: "⚽", hint: "You play sports with this" },
-        { word: "CUP", emoji: "☕", hint: "You drink from this" },
-        { word: "SPOON", emoji: "🥄", hint: "You eat soup with this" },
-        { word: "KEY", emoji: "🔑", hint: "Opens a door" },
-        { word: "PICTURE", emoji: "🖼️", hint: "A drawing or photo on the wall" },
-        { word: "TEDDY BEAR", emoji: "🧸", hint: "A soft toy to hug" },
-        { word: "DOOR", emoji: "🚪", hint: "You open this to go in or out" },
-        { word: "BAG", emoji: "🎒", hint: "You carry things in this" },
-        { word: "SHOES", emoji: "👟", hint: "You wear these on your feet" },
-        { word: "HAT", emoji: "🎩", hint: "You wear this on your head" },
-        { word: "FORK", emoji: "🍴", hint: "You eat with this" },
-        { word: "PLATE", emoji: "🍽️", hint: "You put food on this" },
-      ],
-      animals: [
-        { word: "CAT", emoji: "🐱", hint: "Says meow" },
-        { word: "DOG", emoji: "🐶", hint: "Says woof" },
-        { word: "BIRD", emoji: "🐦", hint: "Can fly" },
-        { word: "FISH", emoji: "🐟", hint: "Lives in water" },
-        { word: "HORSE", emoji: "🐴", hint: "You can ride this animal" },
-        { word: "RABBIT", emoji: "🐰", hint: "Has long ears and hops" },
-        { word: "ELEPHANT", emoji: "🐘", hint: "Very big with a trunk" },
-        { word: "LION", emoji: "🦁", hint: "King of the jungle" },
-        { word: "DUCK", emoji: "🦆", hint: "Says quack quack" },
-        { word: "BEAR", emoji: "🐻", hint: "Big and furry animal" },
-        { word: "MOUSE", emoji: "🐭", hint: "Very small animal" },
-        { word: "PIG", emoji: "🐷", hint: "Says oink oink" },
-        { word: "COW", emoji: "🐮", hint: "Gives us milk" },
-        { word: "FROG", emoji: "🐸", hint: "Jumps and says ribbit" },
-        { word: "BEE", emoji: "🐝", hint: "Makes honey and buzzes" },
-      ],
-      colors: [
-        { word: "RED", emoji: "🔴", hint: "Color of an apple" },
-        { word: "BLUE", emoji: "🔵", hint: "Color of the sky" },
-        { word: "GREEN", emoji: "🟢", hint: "Color of grass" },
-        { word: "YELLOW", emoji: "🟡", hint: "Color of the sun" },
-        { word: "PINK", emoji: "🩷", hint: "Light red color" },
-        { word: "ORANGE", emoji: "🟠", hint: "Color of a carrot" },
-        { word: "PURPLE", emoji: "🟣", hint: "Mix of red and blue" },
-        { word: "BLACK", emoji: "⚫", hint: "Color of the night" },
-        { word: "WHITE", emoji: "⚪", hint: "Color of snow" },
-        { word: "BROWN", emoji: "🟤", hint: "Color of chocolate" },
-      ],
-      people: [
-        { word: "BOY", emoji: "👦", hint: "A young male person" },
-        { word: "GIRL", emoji: "👧", hint: "A young female person" },
-        { word: "BABY", emoji: "👶", hint: "A very young child" },
-        { word: "MOM", emoji: "👩", hint: "Your mother" },
-        { word: "DAD", emoji: "👨", hint: "Your father" },
-        { word: "BROTHER", emoji: "👦", hint: "Your male sibling" },
-        { word: "SISTER", emoji: "👧", hint: "Your female sibling" },
-        { word: "FRIEND", emoji: "🧑‍🤝‍🧑", hint: "Someone you like to play with" },
-      ],
-      food: [
-        { word: "APPLE", emoji: "🍎", hint: "A red or green fruit" },
-        { word: "BANANA", emoji: "🍌", hint: "A yellow fruit monkeys love" },
-        { word: "PIZZA", emoji: "🍕", hint: "Round food with cheese" },
-        { word: "CAKE", emoji: "🎂", hint: "Sweet dessert for birthdays" },
-        { word: "BREAD", emoji: "🍞", hint: "You make sandwiches with this" },
-        { word: "MILK", emoji: "🥛", hint: "White drink from cows" },
-        { word: "WATER", emoji: "💧", hint: "You drink this when thirsty" },
-        { word: "COOKIE", emoji: "🍪", hint: "Sweet round treat" },
-        { word: "EGG", emoji: "🥚", hint: "Chickens lay these" },
-        { word: "CHEESE", emoji: "🧀", hint: "Yellow food made from milk" },
-      ],
-      body: [
-        { word: "HEAD", emoji: "🙂", hint: "Top part of your body" },
-        { word: "HAND", emoji: "✋", hint: "You wave with this" },
-        { word: "FOOT", emoji: "🦶", hint: "You walk with this" },
-        { word: "EYE", emoji: "👁️", hint: "You see with this" },
-        { word: "EAR", emoji: "👂", hint: "You hear with this" },
-        { word: "NOSE", emoji: "👃", hint: "You smell with this" },
-        { word: "MOUTH", emoji: "👄", hint: "You eat and talk with this" },
-        { word: "ARM", emoji: "💪", hint: "Between your shoulder and hand" },
-        { word: "LEG", emoji: "🦵", hint: "Between your hip and foot" },
-      ],
-      adjectives: [
-        { word: "BIG", emoji: "🐘", hint: "Very large" },
-        { word: "SMALL", emoji: "🐭", hint: "Very little" },
-        { word: "HAPPY", emoji: "😊", hint: "Feeling good and smiling" },
-        { word: "SAD", emoji: "😢", hint: "Feeling like crying" },
-        { word: "FULL", emoji: "🔋", hint: "Not empty, all filled" },
-        { word: "HOT", emoji: "🔥", hint: "Very warm" },
-        { word: "COLD", emoji: "🧊", hint: "Like ice" },
-        { word: "FAST", emoji: "🏃", hint: "Moving quickly" },
-        { word: "SLOW", emoji: "🐌", hint: "Not fast" },
-        { word: "TALL", emoji: "🦒", hint: "Very high" },
-      ]
+    const vocabularyData = {
+      ahorcado: {
+        title: "Ahorcado - Hangman 🎮",
+        icon: "fa-gamepad",
+        color: "from-pink-400 to-rose-500",
+        borderColor: "border-pink-400",
+        bgColor: "bg-pink-500",
+        isExternal: true,
+        url: "ahorcado.html",
+        items: []
+      },
+      rooms: {
+        title: "Rooms (Cuartos)",
+        icon: "fa-house-chimney",
+        color: "from-blue-400 to-indigo-500",
+        borderColor: "border-blue-400",
+        bgColor: "bg-blue-500",
+        items: [
+          { en: "bedroom", es: "recámara / dormitorio", icon: "bed" },
+          { en: "kitchen", es: "cocina", icon: "cooking" },
+          { en: "living room", es: "sala de estar", icon: "couch-and-lamp" },
+          { en: "bathroom", es: "baño", icon: "bathtub" },
+          { en: "dining room", es: "comedor", icon: "fork-and-knife-with-plate" },
+          { en: "house", es: "casa", icon: "house" },
+          { en: "garage", es: "garaje", icon: "car" }
+        ]
+      },
+      furniture: {
+        title: "Furniture (Muebles)",
+        icon: "fa-couch",
+        color: "from-purple-400 to-pink-500",
+        borderColor: "border-purple-400",
+        bgColor: "bg-purple-500",
+        items: [
+          { en: "bed", es: "cama", icon: "bed" },
+          { en: "couch", es: "sofá", icon: "couch-and-lamp" },
+          { en: "table", es: "mesa", icon: "brown-square" },
+          { en: "bath", es: "bañera / tina", icon: "bathtub" },
+          { en: "sink", es: "lavabo / fregadero", icon: "potable-water" },
+          { en: "toilet", es: "inodoro / taza de baño", icon: "toilet" },
+          { en: "chair", es: "silla", icon: "chair" },
+          { en: "TV", es: "televisión", icon: "television" },
+          { en: "tub", es: "tina de baño", icon: "bathtub" },
+          { en: "lamp", es: "lámpara", icon: "light-bulb" },
+          { en: "sofa", es: "sofa", icon: "couch-and-lamp" },
+          { en: "desk", es: "escritorio", icon: "desktop-computer" }
+        ]
+      },
+      adjectives: {
+        title: "Adjectives (Adjetivos)",
+        icon: "fa-face-smile",
+        color: "from-amber-400 to-orange-500",
+        borderColor: "border-amber-400",
+        bgColor: "bg-amber-500",
+        items: [
+          { en: "big", es: "grande", icon: "elephant" },
+          { en: "small", es: "pequeño / chica", icon: "mouse" },
+          { en: "happy", es: "feliz / alegre", icon: "grinning-face" },
+          { en: "sad", es: "triste", icon: "crying-face" },
+          { en: "full", es: "lleno", icon: "battery" },
+          { en: "empty", es: "vacío", icon: "empty-square" },
+          { en: "hot", es: "caliente", icon: "fire" },
+          { en: "cold", es: "frío", icon: "snowflake" }
+        ]
+      },
+      prepositions: {
+        title: "Prepositions (Preposiciones)",
+        icon: "fa-box-open",
+        color: "from-emerald-400 to-teal-600",
+        borderColor: "border-emerald-400",
+        bgColor: "bg-emerald-500",
+        items: [
+          { en: "on", es: "sobre / encima de", icon: "on", isCustom: true },
+          { en: "in", es: "dentro de", icon: "in", isCustom: true },
+          { en: "under", es: "debajo de", icon: "under", isCustom: true },
+          { en: "behind", es: "detrás de", icon: "behind", isCustom: true },
+          { en: "next to", es: "al lado de", icon: "next-to", isCustom: true },
+          { en: "between", es: "entre (dos cosas)", icon: "between", isCustom: true }
+        ]
+      },
+      objects: {
+        title: "Objects & Animals",
+        icon: "fa-dog",
+        color: "from-rose-400 to-red-500",
+        borderColor: "border-rose-400",
+        bgColor: "bg-rose-500",
+        items: [
+          { en: "dog", es: "perro", icon: "dog" },
+          { en: "cat", es: "gato", icon: "cat" },
+          { en: "girl", es: "niña", icon: "girl" },
+          { en: "boy", es: "niño", icon: "boy" },
+          { en: "window", es: "ventana", icon: "window" },
+          { en: "ball", es: "pelota / balón", icon: "soccer-ball" },
+          { en: "picture", es: "cuadro / foto", icon: "framed-picture" },
+          { en: "teddy bear", es: "oso de peluche", icon: "teddy-bear" },
+          { en: "duck", es: "pato", icon: "duck" },
+          { en: "mouse", es: "ratón", icon: "mouse" },
+          { en: "elephant", es: "elefante", icon: "elephant" },
+          { en: "car", es: "coche", icon: "car" },
+          { en: "tree", es: "árbol", icon: "tree" },
+          { en: "flower", es: "flor", icon: "flower" },
+          { en: "house", es: "casa", icon: "house" },
+        ]
+      },
+      colors: {
+        title: "Colors (Colores)",
+        icon: "fa-palette",
+        color: "from-fuchsia-400 to-cyan-500",
+        borderColor: "border-fuchsia-400",
+        bgColor: "bg-fuchsia-500",
+        items: [
+          { en: "red", es: "rojo", icon: "red-circle" },
+          { en: "blue", es: "azul", icon: "blue-circle" },
+          { en: "yellow", es: "amarillo", icon: "yellow-circle" },
+          { en: "green", es: "verde", icon: "green-circle" },
+          { en: "pink", es: "rosa", icon: "cherry-blossom" },
+          { en: "purple", es: "morado", icon: "purple-circle" },
+          { en: "orange", es: "naranja", icon: "orange-circle" },
+          { en: "brown", es: "marrón / café", icon: "brown-circle" },
+          { en: "black", es: "negro", icon: "black-circle" },
+          { en: "white", es: "blanco", icon: "white-circle" },
+          { en: "gray", es: "gris", icon: "gray-circle" }
+        ]
+      },
+      listenDraw: {
+        title: "Listen & Draw 🎨",
+        icon: "fa-paintbrush",
+        color: "from-teal-400 to-green-500",
+        borderColor: "border-teal-400",
+        bgColor: "bg-teal-500",
+        isExternal: true,
+        url: "listen-draw.html",
+        items: []
+      },
+      interactive: {
+        title: "Interactive Practice 🎯",
+        icon: "fa-hand-pointer",
+        color: "from-violet-400 to-purple-500",
+        borderColor: "border-violet-400",
+        bgColor: "bg-violet-500",
+        isExternal: true,
+        url: "interactive-practice.html",
+        items: []
+      }
     };
 
-    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const MAX_ERRORS = 6;
-
     /* ============================================================
-        GAME STATE
+       ESTADO Y VARIABLES GLOBALES
     ============================================================ */
-    let currentWord = null;
-    let guessedLetters = [];
-    let errors = 0;
+    let currentCategoryKey = null;
+    let questionsList = [];
+    let currentQuestionIndex = 0;
     let score = 0;
-    let usedWords = [];
-    let totalWordsGuessed = 0;
-    let sessionHighScore = 0;
+    let totalStars = 0;
+    let totalScore = 0;
+    let isAnsweringBlocked = false;
 
     /* ============================================================
-        INITIALIZATION
+       GENERADORES DE ICONOS CUSTOM CSS PARA PREPOSICIONES
     ============================================================ */
-    window.addEventListener('DOMContentLoaded', () => {
-      // Check if player exists first
-      const storedPlayerName = localStorage.getItem('currentPlayer');
-      if (!storedPlayerName) {
-        console.warn('⚠️ Ahorcado: No player name found');
-        console.warn('   └─ Redirecting to main page...');
-        alert('Please enter your name on the main page first!');
-        window.location.href = 'index.html';
-        return;
+    function generatePrepositionIcon(type) {
+      const iconMap = {
+        'on': `
+          <div class="relative w-20 h-20 flex flex-col items-center justify-center">
+            <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg mb-1 animate-bounce"></div>
+            <div class="w-16 h-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-md"></div>
+          </div>
+        `,
+        'in': `
+          <div class="relative w-20 h-20 flex items-center justify-center">
+            <div class="w-16 h-16 border-4 border-purple-500 bg-purple-100 rounded-xl shadow-lg flex items-center justify-center">
+              <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full shadow-md"></div>
+            </div>
+          </div>
+        `,
+        'under': `
+          <div class="relative w-20 h-20 flex flex-col items-center justify-center">
+            <div class="w-16 h-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-md mb-1"></div>
+            <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full shadow-lg"></div>
+          </div>
+        `,
+        'behind': `
+          <div class="relative w-20 h-20 flex items-center justify-center">
+            <div class="absolute left-4 w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-xl z-10"></div>
+            <div class="absolute right-4 w-10 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg"></div>
+          </div>
+        `,
+        'next-to': `
+          <div class="relative w-20 h-20 flex items-center justify-center gap-2">
+            <div class="w-9 h-9 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full shadow-lg border-2 border-white"></div>
+            <div class="w-9 h-9 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-lg border-2 border-white"></div>
+          </div>
+        `,
+        'between': `
+          <div class="relative w-20 h-20 flex items-center justify-center gap-1">
+            <div class="w-6 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-md"></div>
+            <div class="w-6 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg"></div>
+            <div class="w-6 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-md"></div>
+          </div>
+        `
+      };
+      return iconMap[type] || '';
+    }
+
+    // Helper para obtener un item completo por su traducción en español
+    function getItemByTranslation(esText) {
+      for (const key in vocabularyData) {
+        const found = vocabularyData[key].items.find(item => item.es === esText);
+        if (found) return found;
       }
+      return { es: esText, icon: "question-mark", isCustom: false };
+    }
 
-      // Initialize Firebase
-      if (typeof initializeFirebase === 'function') {
-        const initialized = initializeFirebase();
-        console.log('🎮 Ahorcado: Firebase initialized:', initialized);
+    /* ============================================================
+       PLAYER MANAGEMENT
+    ============================================================ */
+    function setPlayerName(event) {
+      event.preventDefault();
+      const nameInput = document.getElementById('player-name-input');
+      const playerName = nameInput.value.trim();
 
-        // Load player from localStorage
-        if (typeof loadPlayerFromStorage === 'function') {
-          const player = loadPlayerFromStorage();
-          if (player) {
-            console.log('🎮 Ahorcado: Player loaded:', player.name);
-            console.log('   └─ Current Total Score:', player.totalScore || 0);
+      if (playerName.length >= 2) {
+        // Hide modal
+        document.getElementById('player-modal').classList.add('hidden');
+
+        // Update display
+        document.getElementById('player-name-display').textContent = playerName;
+
+        // Initialize Firebase and get/create player
+        console.log('🔍 Attempting to initialize Firebase...');
+        if (typeof initializeFirebase === 'function') {
+          const firebaseInitialized = initializeFirebase();
+          console.log('🔍 Firebase initialized:', firebaseInitialized);
+
+          if (firebaseInitialized && typeof getOrCreatePlayer === 'function') {
+            console.log('🔍 Creating/getting player:', playerName);
+            getOrCreatePlayer(playerName).then(player => {
+              if (player) {
+                console.log('✅ Player loaded:', player);
+                // Load player's progress
+                updateGlobalScoreDisplay();
+              } else {
+                console.error('❌ Failed to create/get player');
+              }
+            }).catch(error => {
+              console.error('❌ Error in getOrCreatePlayer:', error);
+            });
           } else {
-            console.warn('⚠️ Ahorcado: Player data incomplete, will create on save');
+            console.warn('⚠️ Firebase functions not available');
           }
-        }
-      } else {
-        console.error('❌ Ahorcado: Firebase functions not available');
-        console.error('   └─ Points will not be saved!');
-      }
-
-      createKeyboard();
-      initGame();
-    });
-
-    function initGame() {
-      score = 0;
-      usedWords = [];
-      totalWordsGuessed = 0;
-      sessionHighScore = 0;
-      lastSavedScore = 0; // Reset saved score tracker
-      updateScore();
-      loadNewWord();
-    }
-
-    function createKeyboard() {
-      const keyboard = document.getElementById('keyboard');
-      keyboard.innerHTML = ALPHABET.map(letter => `
-        <button
-          id="key-${letter}"
-          onclick="selectLetter('${letter}')"
-          class="keyboard-btn bg-white hover:bg-purple-100 border-2 border-purple-300 hover:border-purple-500 rounded-xl transition btn-pop text-slate-800">
-          ${letter}
-        </button>
-      `).join('');
-    }
-
-    function loadNewWord() {
-      // Get all categories
-      const categories = Object.keys(vocabulary);
-
-      // Get available words (not used yet)
-      let availableWords = [];
-      let categoryName = '';
-
-      categories.forEach(cat => {
-        vocabulary[cat].forEach(item => {
-          if (!usedWords.includes(item.word)) {
-            availableWords.push({ ...item, category: cat });
-          }
-        });
-      });
-
-      // If no words left, show results
-      if (availableWords.length === 0) {
-        showResults();
-        return;
-      }
-
-      // Pick random word
-      const randomIndex = Math.floor(Math.random() * availableWords.length);
-      currentWord = availableWords[randomIndex];
-      usedWords.push(currentWord.word);
-
-      // Reset game state
-      guessedLetters = [];
-      errors = 0;
-
-      // Update UI
-      document.getElementById('category-badge').textContent = `Category: ${capitalizeFirst(currentWord.category)}`;
-      document.getElementById('word-emoji').textContent = currentWord.emoji;
-      document.getElementById('hint-text').textContent = currentWord.hint;
-      document.getElementById('errors').textContent = errors;
-      document.getElementById('max-errors').textContent = MAX_ERRORS;
-
-      // Reset keyboard
-      ALPHABET.forEach(letter => {
-        const btn = document.getElementById(`key-${letter}`);
-        btn.disabled = false;
-        btn.classList.remove('bg-red-200', 'bg-green-200');
-        btn.classList.add('bg-white');
-      });
-
-      // Create word boxes
-      createWordBoxes();
-
-      // Clear hangman
-      drawHangman();
-    }
-
-    function createWordBoxes() {
-      const container = document.getElementById('word-container');
-      const word = currentWord.word;
-
-      container.innerHTML = word.split('').map((letter, i) => {
-        if (letter === ' ') {
-          return '<div class="w-4"></div>'; // Space between words
-        }
-        return `<div class="letter-box" id="box-${i}"></div>`;
-      }).join('');
-    }
-
-    function selectLetter(letter) {
-      const btn = document.getElementById(`key-${letter}`);
-      btn.disabled = true;
-
-      guessedLetters.push(letter);
-
-      // Check if letter is in word
-      const word = currentWord.word;
-      let found = false;
-
-      word.split('').forEach((char, i) => {
-        if (char === letter) {
-          document.getElementById(`box-${i}`).textContent = letter;
-          found = true;
-        }
-      });
-
-      if (found) {
-        btn.classList.add('bg-green-200');
-        playSound('correct');
-
-        // Check if word is complete
-        if (isWordComplete()) {
-          // Trigger confetti immediately
-          triggerConfetti();
-          totalWordsGuessed++;
-
-          setTimeout(() => {
-            score += 10;
-            updateScore();
-
-            // Save progress to Firebase after each word
-            saveProgressToFirebase();
-
-            nextWord();
-          }, 1000);
-        }
-      } else {
-        btn.classList.add('bg-red-200');
-        errors++;
-        document.getElementById('errors').textContent = errors;
-        playSound('wrong');
-        drawHangman();
-
-        // Check if game over
-        if (errors >= MAX_ERRORS) {
-          triggerSadRain();
-          setTimeout(() => {
-            nextWord();
-          }, 2500);
+        } else {
+          // Fallback: use localStorage only
+          localStorage.setItem('playerName', playerName);
+          console.log('⚠️ Firebase not available, using localStorage only');
         }
       }
     }
 
-    function isWordComplete() {
-      const word = currentWord.word.replace(/ /g, ''); // Remove spaces
-      return word.split('').every(letter => guessedLetters.includes(letter));
-    }
-
-    function nextWord() {
-      loadNewWord();
-    }
-
-    function drawHangman() {
-      const canvas = document.getElementById('hangman-canvas');
-      const ctx = canvas.getContext('2d');
-
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = '#7c3aed';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-
-      // Base
-      ctx.beginPath();
-      ctx.moveTo(10, 240);
-      ctx.lineTo(190, 240);
-      ctx.stroke();
-
-      // Vertical pole
-      ctx.beginPath();
-      ctx.moveTo(50, 240);
-      ctx.lineTo(50, 20);
-      ctx.stroke();
-
-      // Horizontal pole
-      ctx.beginPath();
-      ctx.moveTo(50, 20);
-      ctx.lineTo(150, 20);
-      ctx.stroke();
-
-      // Rope
-      ctx.beginPath();
-      ctx.moveTo(150, 20);
-      ctx.lineTo(150, 50);
-      ctx.stroke();
-
-      // Draw body parts based on errors
-      if (errors >= 1) {
-        // Head
-        ctx.beginPath();
-        ctx.arc(150, 70, 20, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      if (errors >= 2) {
-        // Body
-        ctx.beginPath();
-        ctx.moveTo(150, 90);
-        ctx.lineTo(150, 150);
-        ctx.stroke();
-      }
-
-      if (errors >= 3) {
-        // Left arm
-        ctx.beginPath();
-        ctx.moveTo(150, 110);
-        ctx.lineTo(120, 130);
-        ctx.stroke();
-      }
-
-      if (errors >= 4) {
-        // Right arm
-        ctx.beginPath();
-        ctx.moveTo(150, 110);
-        ctx.lineTo(180, 130);
-        ctx.stroke();
-      }
-
-      if (errors >= 5) {
-        // Left leg
-        ctx.beginPath();
-        ctx.moveTo(150, 150);
-        ctx.lineTo(120, 190);
-        ctx.stroke();
-      }
-
-      if (errors >= 6) {
-        // Right leg
-        ctx.beginPath();
-        ctx.moveTo(150, 150);
-        ctx.lineTo(180, 190);
-        ctx.stroke();
-      }
-    }
-
-    function updateScore() {
-      document.getElementById('score').textContent = score;
-
-      // Track session high score
-      if (score > sessionHighScore) {
-        sessionHighScore = score;
-      }
-    }
-
-    // Update global score display (read from Firebase)
     function updateGlobalScoreDisplay() {
       if (typeof getCurrentPlayer === 'function') {
         const player = getCurrentPlayer();
         if (player) {
-          document.getElementById('score').textContent = player.totalScore || 0;
-          console.log('📊 Updated display - Total Score:', player.totalScore);
+          document.getElementById('global-score').textContent = (player.totalScore || 0) + ' pts';
+          document.getElementById('global-stars').textContent = player.totalStars || 0;
         }
       }
     }
 
-    // Save progress to Firebase
-    let lastSavedScore = 0; // Track what we've already saved
+    /* ============================================================
+       INICIALIZACIÓN DE LA APLICACIÓN
+    ============================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check if player already exists in localStorage
+      const storedPlayer = localStorage.getItem('playerName');
 
-    async function saveProgressToFirebase() {
-      if (typeof updatePlayerProgress !== 'function') {
-        console.log('⚠️ Ahorcado: Firebase not available');
-        return;
-      }
+      if (storedPlayer) {
+        // Returning player - don't show modal
+        document.getElementById('player-name-display').textContent = storedPlayer;
 
-      if (typeof getCurrentPlayer !== 'function') {
-        console.log('⚠️ Ahorcado: getCurrentPlayer not available');
-        return;
-      }
-
-      try {
-        // Calculate new points earned since last save
-        const newPoints = score - lastSavedScore;
-
-        if (newPoints === 0) {
-          console.log('⏭️ Ahorcado: No new points to save');
-          return;
+        // Try to load from Firebase if available
+        if (typeof initializeFirebase === 'function' && typeof loadPlayerFromStorage === 'function') {
+          initializeFirebase();
+          const player = loadPlayerFromStorage();
+          if (player) {
+            updateGlobalScoreDisplay();
+          }
         }
+      } else {
+        // New player - show modal on first visit
+        document.getElementById('player-modal').classList.remove('hidden');
+      }
 
-        const currentPlayer = getCurrentPlayer();
-        const currentTotalScore = currentPlayer?.totalScore || 0;
+      renderCategories();
+      showCategoryMenu();
+    });
 
-        console.log('🎮 Ahorcado: Saving progress...', {
-          playerName: currentPlayer?.name,
-          currentTotalScore: currentTotalScore,
-          sessionScore: score,
-          newPoints: newPoints,
-          newTotalWillBe: currentTotalScore + newPoints,
-          highScore: sessionHighScore,
-          totalWords: totalWordsGuessed
-        });
+    // Renderiza las tarjetas de categorías
+    function renderCategories() {
+      const grid = document.getElementById('categories-grid');
+      grid.innerHTML = '';
 
-        const success = await updatePlayerProgress('ahorcado', {
-          score: newPoints,  // This will be added to totalScore in Firebase
-          highScore: sessionHighScore,
-          totalWords: totalWordsGuessed,
-          lastScore: score,
-          lastPlayed: new Date().toISOString()
-        });
+      Object.keys(vocabularyData).forEach(key => {
+        const cat = vocabularyData[key];
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-3xl p-6 shadow-xl border-2 border-slate-100 hover-bounce cursor-pointer flex flex-col items-center text-center relative overflow-hidden group`;
 
-        if (success) {
-          lastSavedScore = score; // Update what we've saved
-
-          // Refresh current player data from Firebase
-          const updatedPlayer = getCurrentPlayer();
-          const newTotalScore = updatedPlayer?.totalScore || 0;
-
-          console.log('✅ Ahorcado: Progress saved!');
-          console.log('   ├─ Points added: +' + newPoints);
-          console.log('   ├─ New totalScore: ' + newTotalScore);
-          console.log('   └─ Check Firebase Console to verify!');
+        // Handle external games differently
+        if (cat.isExternal) {
+          card.onclick = () => window.location.href = cat.url;
+          const description = key === 'listenDraw' ? 'Práctica de Examen - 15 Preguntas' : 'Part 2 & 3 - Preguntas Interactivas';
+          card.innerHTML = `
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr ${cat.color} text-white flex items-center justify-center text-3xl mb-4 shadow-lg group-hover:scale-110 transition-transform">
+              <i class="fa-solid ${cat.icon}"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-1 font-fun">${cat.title}</h3>
+            <p class="text-xs font-semibold text-slate-400">${description}</p>
+            <div class="mt-4 bg-slate-100 text-indigo-600 font-bold text-xs py-2 px-4 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition">
+              ¡Jugar Ahora! 🚀
+            </div>
+          `;
         } else {
-          console.error('❌ Ahorcado: Failed to save progress');
+          card.onclick = () => startQuiz(key);
+          card.innerHTML = `
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr ${cat.color} text-white flex items-center justify-center text-3xl mb-4 shadow-lg group-hover:scale-110 transition-transform">
+              <i class="fa-solid ${cat.icon}"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-1 font-fun">${cat.title}</h3>
+            <p class="text-xs font-semibold text-slate-400">${cat.items.length} palabras para aprender</p>
+            <div class="mt-4 bg-slate-100 text-indigo-600 font-bold text-xs py-2 px-4 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition">
+              ¡Jugar Ahora! 🚀
+            </div>
+          `;
         }
-      } catch (error) {
-        console.error('❌ Ahorcado: Error saving progress:', error);
+
+        grid.appendChild(card);
+      });
+    }
+
+    /* ============================================================
+       FLUJO DE PANTALLAS Y NAVEGACIÓN
+    ============================================================ */
+    function showCategoryMenu() {
+      document.getElementById('screen-categories').classList.remove('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-results').classList.add('hidden');
+      document.getElementById('screen-leaderboard').classList.add('hidden');
+    }
+
+    async function showLeaderboard() {
+      // Hide other screens
+      document.getElementById('screen-categories').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-results').classList.add('hidden');
+      document.getElementById('screen-leaderboard').classList.remove('hidden');
+
+      // Show loading
+      document.getElementById('leaderboard-loading').classList.remove('hidden');
+      document.getElementById('leaderboard-empty').classList.add('hidden');
+      document.getElementById('leaderboard-list').innerHTML = '';
+
+      // Get top players
+      if (typeof getTopPlayers === 'function') {
+        try {
+          const players = await getTopPlayers(10);
+
+          // Hide loading
+          document.getElementById('leaderboard-loading').classList.add('hidden');
+
+          if (players.length === 0) {
+            document.getElementById('leaderboard-empty').classList.remove('hidden');
+            return;
+          }
+
+          // Render leaderboard
+          const listContainer = document.getElementById('leaderboard-list');
+          players.forEach((player, index) => {
+            const rank = index + 1;
+            let medalIcon = '';
+            let medalColor = '';
+
+            if (rank === 1) {
+              medalIcon = '🥇';
+              medalColor = 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white';
+            } else if (rank === 2) {
+              medalIcon = '🥈';
+              medalColor = 'bg-gradient-to-r from-slate-300 to-slate-400 text-white';
+            } else if (rank === 3) {
+              medalIcon = '🥉';
+              medalColor = 'bg-gradient-to-r from-orange-400 to-orange-600 text-white';
+            } else {
+              medalIcon = `#${rank}`;
+              medalColor = 'bg-slate-100 text-slate-600';
+            }
+
+            const isCurrentPlayer = currentPlayer && player.id === currentPlayer.id;
+            const highlightClass = isCurrentPlayer ? 'border-4 border-indigo-500 bg-indigo-50' : 'border-2 border-slate-200';
+
+            const card = `
+              <div class="${highlightClass} rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition">
+                <div class="w-12 h-12 ${medalColor} rounded-full flex items-center justify-center font-bold text-lg shadow-md flex-shrink-0">
+                  ${medalIcon}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold text-lg text-slate-800 truncate">
+                    ${player.name}
+                    ${isCurrentPlayer ? '<span class="text-xs text-indigo-600 ml-2">(You)</span>' : ''}
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    ${player.gamesPlayed || 0} games played
+                  </p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="flex items-center gap-1 text-amber-600 font-bold">
+                    <i class="fa-solid fa-star"></i>
+                    <span>${player.totalStars || 0}</span>
+                  </div>
+                  <div class="text-lg font-bold text-indigo-700">
+                    ${player.totalScore || 0} pts
+                  </div>
+                </div>
+              </div>
+            `;
+
+            listContainer.innerHTML += card;
+          });
+
+        } catch (error) {
+          console.error('Error loading leaderboard:', error);
+          document.getElementById('leaderboard-loading').classList.add('hidden');
+          document.getElementById('leaderboard-list').innerHTML = `
+            <div class="text-center py-8">
+              <i class="fa-solid fa-exclamation-triangle text-4xl text-orange-500 mb-3"></i>
+              <p class="text-slate-600">Could not load leaderboard.</p>
+              <p class="text-sm text-slate-400 mt-2">Make sure Firebase is configured.</p>
+            </div>
+          `;
+        }
+      } else {
+        // Firebase not available
+        document.getElementById('leaderboard-loading').classList.add('hidden');
+        document.getElementById('leaderboard-list').innerHTML = `
+          <div class="text-center py-8">
+            <i class="fa-solid fa-database text-4xl text-slate-300 mb-3"></i>
+            <p class="text-slate-600">Leaderboard requires Firebase.</p>
+            <p class="text-sm text-slate-400 mt-2">Check FIREBASE_SETUP.md for instructions.</p>
+          </div>
+        `;
       }
     }
 
-    function showResults() {
-      // Save final progress
-      saveProgressToFirebase();
+    function startQuiz(categoryKey) {
+      currentCategoryKey = categoryKey;
+      const cat = vocabularyData[categoryKey];
 
-      document.getElementById('game-card').classList.add('hidden');
-      document.getElementById('results-card').classList.remove('hidden');
-      document.getElementById('final-score').textContent = score;
+      // Barajar palabras
+      questionsList = [...cat.items].sort(() => Math.random() - 0.5);
+      currentQuestionIndex = 0;
+      score = 0;
+      isAnsweringBlocked = false;
 
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+      // Actualizar UI badges
+      document.getElementById('current-category-badge').innerText = cat.title;
+
+      document.getElementById('screen-categories').classList.add('hidden');
+      document.getElementById('screen-results').classList.add('hidden');
+      document.getElementById('screen-game').classList.remove('hidden');
+
+      loadQuestion();
+    }
+
+    function retryCurrentCategory() {
+      if (currentCategoryKey) {
+        startQuiz(currentCategoryKey);
       }
     }
 
-    function resetGame() {
-      document.getElementById('results-card').classList.add('hidden');
-      document.getElementById('game-card').classList.remove('hidden');
-      initGame();
+    /* ============================================================
+       LÓGICA DEL QUIZ
+    ============================================================ */
+    function loadQuestion() {
+      if (currentQuestionIndex >= questionsList.length) {
+        finishQuiz();
+        return;
+      }
+
+      isAnsweringBlocked = false;
+      const currentItem = questionsList[currentQuestionIndex];
+
+      // Actualizar número de pregunta y barra de progreso
+      document.getElementById('current-question-num').innerText = currentQuestionIndex + 1;
+      document.getElementById('total-questions-num').innerText = questionsList.length;
+      const progressPercent = ((currentQuestionIndex) / questionsList.length) * 100;
+      document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+      // Establecer palabra objetivo
+      document.getElementById('target-word').innerText = currentItem.en;
+
+      // Reproducir sonido automáticamente
+      setTimeout(() => {
+        speakWord(currentItem.en);
+      }, 300);
+
+      // Generar Opciones Falsas (Distractores)
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+
+      const wrongOptions = getDistractors(currentItem.es, 3);
+      const allChoicesText = [currentItem.es, ...wrongOptions].sort(() => Math.random() - 0.5);
+
+      allChoicesText.forEach(choiceText => {
+        const choiceItem = getItemByTranslation(choiceText);
+        const btn = document.createElement('button');
+        btn.className = `w-full h-32 md:h-40 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 border-4 border-slate-200 rounded-3xl transition btn-pop flex items-center justify-center relative option-pop`;
+
+        // Detectar si es un icono custom (preposiciones CSS) o uno de Iconify
+        if (choiceItem.isCustom) {
+          btn.innerHTML = `
+            <div class="pointer-events-none select-none scale-110">
+              ${generatePrepositionIcon(choiceItem.icon)}
+            </div>
+            <i class="fa-regular fa-circle text-slate-300 choice-icon text-2xl absolute top-3 right-3"></i>
+          `;
+        } else {
+          btn.innerHTML = `
+            <img src="https://api.iconify.design/noto/${choiceItem.icon}.svg?height=100" alt="${choiceItem.es}" class="pointer-events-none select-none w-20 h-20 md:w-24 md:h-24">
+            <i class="fa-regular fa-circle text-slate-300 choice-icon text-2xl absolute top-3 right-3"></i>
+          `;
+        }
+
+        btn.onclick = () => validateAnswer(btn, choiceText === currentItem.es, currentItem.es);
+        optionsContainer.appendChild(btn);
+      });
     }
 
-    function goHome() {
-      window.location.href = 'index.html';
+    // Obtener respuestas incorrectas aleatorias de todo el vocabulario
+    function getDistractors(correctTranslation, count = 3) {
+      let pool = [];
+      Object.keys(vocabularyData).forEach(key => {
+        vocabularyData[key].items.forEach(item => {
+          if (item.es !== correctTranslation) {
+            pool.push(item.es);
+          }
+        });
+      });
+      // Eliminar duplicados y mezclar
+      const uniquePool = [...new Set(pool)].sort(() => Math.random() - 0.5);
+      return uniquePool.slice(0, count);
     }
 
-    function capitalizeFirst(str) {
-      return str.charAt(0).toUpperCase() + str.slice(1);
+    /* ============================================================
+       VALIDACIÓN Y EFECTOS VISUALES (CONFETI Y CARITAS TRISTES)
+    ============================================================ */
+    function validateAnswer(selectedBtn, isCorrect, correctText) {
+      if (isAnsweringBlocked) return;
+      isAnsweringBlocked = true;
+
+      const allBtns = document.getElementById('options-container').querySelectorAll('button');
+
+      if (isCorrect) {
+        // --- RESPUESTA CORRECTA ---
+        selectedBtn.className = "w-full bg-emerald-500 border-2 border-emerald-600 text-white font-bold text-lg md:text-xl py-4 px-6 rounded-2xl text-center transition flex items-center justify-between shadow-lg scale-102";
+        selectedBtn.querySelector('.choice-icon').className = "fa-solid fa-circle-check text-white text-2xl";
+
+        score += 10;
+        triggerConfetti();
+
+      } else {
+        // --- RESPUESTA INCORRECTA ---
+        selectedBtn.className = "w-full bg-rose-500 border-2 border-rose-600 text-white font-bold text-lg md:text-xl py-4 px-6 rounded-2xl text-center transition flex items-center justify-between shadow-lg";
+        selectedBtn.querySelector('.choice-icon').className = "fa-solid fa-circle-xmark text-white text-2xl";
+
+        // Mostrar la respuesta correcta en verde
+        allBtns.forEach(btn => {
+          if (btn.innerText.includes(correctText)) {
+            btn.className = "w-full bg-emerald-100 border-2 border-emerald-400 text-emerald-800 font-bold text-lg md:text-xl py-4 px-6 rounded-2xl text-center transition flex items-center justify-between";
+            btn.querySelector('.choice-icon').className = "fa-solid fa-circle-check text-emerald-600 text-2xl";
+          }
+        });
+
+        triggerSadRain();
+      }
+
+      // Siguiente pregunta después de una pequeña pausa
+      setTimeout(() => {
+        currentQuestionIndex++;
+        loadQuestion();
+      }, 1600);
     }
 
     // Efecto de Confeti 🎉
     function triggerConfetti() {
       if (typeof confetti === 'function') {
         confetti({
-          particleCount: 100,
-          spread: 80,
+          particleCount: 80,
+          spread: 70,
           origin: { y: 0.6 },
-          colors: ['#ec4899', '#a855f7', '#f472b6', '#d946ef', '#f97316']
+          colors: ['#f43f5e', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
         });
-        // Second burst for extra celebration
-        setTimeout(() => {
-          confetti({
-            particleCount: 50,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.6 }
-          });
-        }, 200);
-        setTimeout(() => {
-          confetti({
-            particleCount: 50,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.6 }
-          });
-        }, 400);
       }
     }
 
@@ -806,38 +964,88 @@
       }
     }
 
-    // Speak the current word
-    function speakWord() {
-      if (currentWord && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(currentWord.word);
+    /* ============================================================
+       SISTEMA DE VOZ (SPEECH SYNTHESIS)
+    ============================================================ */
+    function speakCurrentWord() {
+      if (questionsList[currentQuestionIndex]) {
+        speakWord(questionsList[currentQuestionIndex].en);
+      }
+    }
+
+    function speakWord(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Detener pronunciaciones previas
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        utterance.rate = 0.7;
-        utterance.pitch = 1.0;
+        utterance.rate = 0.8; // Velocidad cómoda y clara para niños
+        utterance.pitch = 1.1; // Tono ligeramente más agudo/amigable
         window.speechSynthesis.speak(utterance);
       }
     }
 
-    function playSound(type) {
-      // Simple audio feedback using Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+    /* ============================================================
+       PANTALLA FINAL Y RESULTADOS
+    ============================================================ */
+    function finishQuiz() {
+      // Completar barra de progreso
+      document.getElementById('progress-bar').style.width = '100%';
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Calcular estrellas ganadas
+      const maxPossibleScore = questionsList.length * 10;
+      const percentage = (score / maxPossibleScore) * 100;
+      
+      let starsEarned = 1;
+      if (percentage >= 80) starsEarned = 3;
+      else if (percentage >= 50) starsEarned = 2;
 
-      if (type === 'correct') {
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
+      // Actualizar globales
+      totalScore += score;
+      totalStars += starsEarned;
+
+      document.getElementById('global-score').innerText = `${totalScore} pts`;
+      document.getElementById('global-stars').innerText = totalStars;
+
+      // Actualizar pantalla de resultados
+      document.getElementById('earned-points').innerText = `+${score} pts`;
+      document.getElementById('earned-stars').innerText = `⭐ ${starsEarned}`;
+
+      // Save progress to Firebase
+      console.log('🔍 Attempting to save progress...', {
+        category: currentCategoryKey,
+        score: score,
+        stars: starsEarned
+      });
+
+      if (typeof updatePlayerProgress === 'function' && currentCategoryKey) {
+        updatePlayerProgress(currentCategoryKey, {
+          completed: true,
+          score: score,
+          stars: starsEarned,
+          lastPlayed: new Date().toISOString()
+        }).then((success) => {
+          if (success) {
+            console.log('✅ Progress saved to Firebase successfully!');
+            updateGlobalScoreDisplay();
+          } else {
+            console.error('❌ Failed to save progress to Firebase');
+          }
+        }).catch(error => {
+          console.error('❌ Error saving progress:', error);
+        });
       } else {
-        oscillator.frequency.value = 200;
-        oscillator.type = 'sawtooth';
+        console.warn('⚠️ updatePlayerProgress function not available or no category key');
       }
 
-      gainNode.gain.value = 0.1;
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.1);
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-results').classList.remove('hidden');
+
+      // Celebración final si le fue muy bien
+      if (percentage >= 60) {
+        setTimeout(() => {
+          triggerConfetti();
+        }, 300);
+      }
     }
   </script>
 </body>
