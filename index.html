@@ -340,16 +340,6 @@
        BASE DE DATOS DE VOCABULARIO
     ============================================================ */
     const vocabularyData = {
-      ahorcado: {
-        title: "Ahorcado - Hangman 🎮",
-        icon: "fa-gamepad",
-        color: "from-pink-400 to-rose-500",
-        borderColor: "border-pink-400",
-        bgColor: "bg-pink-500",
-        isExternal: true,
-        url: "ahorcado.html",
-        items: []
-      },
       rooms: {
         title: "Rooms (Cuartos)",
         icon: "fa-house-chimney",
@@ -482,6 +472,16 @@
         isExternal: true,
         url: "interactive-practice.html",
         items: []
+      },
+      ahorcado: {
+        title: "Ahorcado - Hangman 🎮",
+        icon: "fa-gamepad",
+        color: "from-pink-400 to-rose-500",
+        borderColor: "border-pink-400",
+        bgColor: "bg-pink-500",
+        isExternal: true,
+        url: "ahorcado.html",
+        items: []
       }
     };
 
@@ -612,7 +612,7 @@
     ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
       // Check if player already exists in localStorage
-      const storedPlayer = localStorage.getItem('currentPlayer');
+      const storedPlayer = localStorage.getItem('playerName');
 
       if (storedPlayer) {
         // Returning player - don't show modal
