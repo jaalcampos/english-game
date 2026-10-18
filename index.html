@@ -350,6 +350,16 @@
         url: "ahorcado.html",
         items: []
       },
+      sentenceBuilder: {
+        title: "Sentence Builder 📝",
+        icon: "fa-pencil-alt",
+        color: "from-green-400 to-emerald-500",
+        borderColor: "border-green-400",
+        bgColor: "bg-green-500",
+        isExternal: true,
+        url: "english_sentence_builder.html",
+        items: []
+      },
       rooms: {
         title: "Rooms (Cuartos)",
         icon: "fa-house-chimney",
@@ -567,6 +577,10 @@
         // Update display
         document.getElementById('player-name-display').textContent = playerName;
 
+        // Store in both localStorage and sessionStorage for redundancy
+        localStorage.setItem('playerName', playerName);
+        sessionStorage.setItem('playerName', playerName);
+
         // Initialize Firebase and get/create player
         console.log('🔍 Attempting to initialize Firebase...');
         if (typeof initializeFirebase === 'function') {
@@ -578,6 +592,8 @@
             getOrCreatePlayer(playerName).then(player => {
               if (player) {
                 console.log('✅ Player loaded:', player);
+                // Store player data in sessionStorage for quick access
+                sessionStorage.setItem('currentPlayer', JSON.stringify(player));
                 // Load player's progress
                 updateGlobalScoreDisplay();
               } else {
@@ -591,19 +607,32 @@
           }
         } else {
           // Fallback: use localStorage only
-          localStorage.setItem('playerName', playerName);
           console.log('⚠️ Firebase not available, using localStorage only');
         }
       }
     }
 
     function updateGlobalScoreDisplay() {
+      // Try to get player from Firebase first
       if (typeof getCurrentPlayer === 'function') {
         const player = getCurrentPlayer();
         if (player) {
           document.getElementById('global-score').textContent = (player.totalScore || 0) + ' pts';
           document.getElementById('global-stars').textContent = player.totalStars || 0;
+          return;
         }
+      }
+
+      // Fallback: try sessionStorage
+      try {
+        const cachedPlayer = sessionStorage.getItem('currentPlayer');
+        if (cachedPlayer) {
+          const player = JSON.parse(cachedPlayer);
+          document.getElementById('global-score').textContent = (player.totalScore || 0) + ' pts';
+          document.getElementById('global-stars').textContent = player.totalStars || 0;
+        }
+      } catch (error) {
+        console.error('Error loading player from sessionStorage:', error);
       }
     }
 
@@ -611,20 +640,31 @@
        INICIALIZACIÓN DE LA APLICACIÓN
     ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
-      // Check if player already exists in localStorage
-      const storedPlayer = localStorage.getItem('playerName');
+      // Check if player already exists in localStorage or sessionStorage
+      const storedPlayer = localStorage.getItem('playerName') || sessionStorage.getItem('playerName');
+      let playerLoaded = false;
 
       if (storedPlayer) {
         // Returning player - don't show modal
         document.getElementById('player-name-display').textContent = storedPlayer;
 
         // Try to load from Firebase if available
-        if (typeof initializeFirebase === 'function' && typeof loadPlayerFromStorage === 'function') {
-          initializeFirebase();
-          const player = loadPlayerFromStorage();
-          if (player) {
-            updateGlobalScoreDisplay();
+        if (typeof initializeFirebase === 'function') {
+          const firebaseInitialized = initializeFirebase();
+
+          if (firebaseInitialized && typeof loadPlayerFromStorage === 'function') {
+            const player = loadPlayerFromStorage();
+            if (player) {
+              playerLoaded = true;
+              updateGlobalScoreDisplay();
+              console.log('✅ Player loaded from storage:', player.name);
+            }
           }
+        }
+
+        // If Firebase didn't load the player but we have a name, still don't show modal
+        if (!playerLoaded) {
+          console.log('⚠️ Player name found but Firebase data not loaded, using stored name only');
         }
       } else {
         // New player - show modal on first visit
