@@ -1,0 +1,1417 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>English Sentence Builder</title>
+        <!-- Tailwind CSS -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Google Fonts -->
+        <link
+            href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap"
+            rel="stylesheet"
+        />
+        <!-- FontAwesome Icons -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+
+        <!-- Firebase -->
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+        <script src="firebase-config.js"></script>
+
+        <style>
+            :root {
+                --ink: #25304a;
+                --purple: #7257d8;
+                --pink: #ff7198;
+                --yellow: #ffd86b;
+                --mint: #75dbc0;
+                --paper: #fffdf8;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Quicksand', sans-serif;
+                background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
+                min-height: 100vh;
+                user-select: none;
+            }
+
+            h1,
+            h2,
+            h3,
+            .font-fun {
+                font-family: 'Fredoka', cursive;
+            }
+            .wrap {
+                max-width: 880px;
+                margin: auto;
+            }
+            .panel {
+                background: rgba(255, 255, 255, 0.94);
+                backdrop-filter: blur(10px);
+                border: 4px solid rgba(255, 255, 255, 0.6);
+                border-radius: 30px;
+                padding: clamp(20px, 4vw, 32px);
+                box-shadow: 0 20px 60px rgba(81, 64, 138, 0.2);
+            }
+            .modes {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+            .modes button {
+                flex: 1 1 auto;
+                min-width: 140px;
+            }
+            button {
+                font: inherit;
+                cursor: pointer;
+                border: 0;
+                border-radius: 18px;
+                padding: 12px 20px;
+                font-weight: 800;
+                transition: all 0.15s ease-out;
+                box-shadow: 0 6px 0 rgba(0, 0, 0, 0.12);
+            }
+            button:hover:not(:disabled) {
+                transform: translateY(-3px);
+                box-shadow: 0 9px 0 rgba(0, 0, 0, 0.12);
+            }
+            button:active:not(:disabled) {
+                transform: translateY(3px);
+                box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+            }
+            button:disabled {
+                opacity: 0.55;
+                cursor: default;
+            }
+            .mode {
+                background: linear-gradient(135deg, #f0edff, #fae8ff);
+                color: #5c48b4;
+                border: 2px solid #e4defe;
+                font-size: 0.95rem;
+                padding: 12px 20px;
+            }
+            .mode:hover:not(.active) {
+                background: linear-gradient(135deg, #e9e5ff, #f3e8ff);
+                border-color: #c4b5fd;
+            }
+            .mode.active {
+                background: linear-gradient(135deg, #8b5cf6, #a855f7);
+                color: white;
+                border-color: #7c3aed;
+                box-shadow:
+                    0 6px 0 rgba(124, 58, 237, 0.4),
+                    0 10px 25px rgba(139, 92, 246, 0.3);
+                animation: subtlePulse 2s ease-in-out infinite;
+            }
+            @keyframes subtlePulse {
+                0%,
+                100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.02);
+                }
+            }
+            .primary {
+                background: linear-gradient(135deg, #f43f5e, #ec4899);
+                color: #fff;
+                font-size: 1.05rem;
+                padding: 14px 24px;
+                box-shadow: 0 6px 0 rgba(244, 63, 94, 0.4);
+            }
+            .primary:hover:not(:disabled) {
+                background: linear-gradient(135deg, #e11d48, #db2777);
+                box-shadow: 0 9px 0 rgba(244, 63, 94, 0.4);
+            }
+            .primary:active:not(:disabled) {
+                box-shadow: 0 2px 0 rgba(244, 63, 94, 0.4);
+            }
+            .secondary {
+                background: linear-gradient(135deg, #e9e5ff, #f3e8ff);
+                color: #5945b0;
+                border: 2px solid #c4b5fd;
+                font-size: 0.95rem;
+                padding: 12px 18px;
+            }
+            .secondary:hover:not(:disabled) {
+                background: linear-gradient(135deg, #ddd6fe, #e9d5ff);
+                border-color: #a78bfa;
+            }
+            .btn-back {
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                color: white;
+            }
+            .btn-speak {
+                background: linear-gradient(135deg, #14b8a6, #06b6d4);
+                color: white;
+                font-size: 1rem;
+                padding: 12px 20px;
+                box-shadow: 0 5px 0 rgba(20, 184, 166, 0.4);
+            }
+            .btn-speak:hover:not(:disabled) {
+                background: linear-gradient(135deg, #0d9488, #0891b2);
+                box-shadow: 0 8px 0 rgba(20, 184, 166, 0.4);
+            }
+            .btn-speak:active:not(:disabled) {
+                box-shadow: 0 2px 0 rgba(20, 184, 166, 0.4);
+            }
+            .btn-clear {
+                background: linear-gradient(135deg, #f59e0b, #f97316);
+                color: white;
+                font-size: 0.95rem;
+                padding: 12px 18px;
+                box-shadow: 0 5px 0 rgba(245, 158, 11, 0.4);
+            }
+            .btn-clear:hover:not(:disabled) {
+                background: linear-gradient(135deg, #d97706, #ea580c);
+                box-shadow: 0 8px 0 rgba(245, 158, 11, 0.4);
+            }
+            .btn-clear:active:not(:disabled) {
+                box-shadow: 0 2px 0 rgba(245, 158, 11, 0.4);
+            }
+            .btn-clear-all {
+                background: linear-gradient(135deg, #64748b, #475569);
+                color: white;
+                font-size: 0.95rem;
+                padding: 12px 18px;
+                box-shadow: 0 5px 0 rgba(100, 116, 139, 0.4);
+            }
+            .btn-clear-all:hover:not(:disabled) {
+                background: linear-gradient(135deg, #475569, #334155);
+                box-shadow: 0 8px 0 rgba(100, 116, 139, 0.4);
+            }
+            .btn-clear-all:active:not(:disabled) {
+                box-shadow: 0 2px 0 rgba(100, 116, 139, 0.4);
+            }
+            .topline {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+                margin-bottom: 18px;
+                font-weight: 800;
+            }
+            .progress {
+                height: 12px;
+                border-radius: 20px;
+                background: #eeeafc;
+                overflow: hidden;
+                flex: 1;
+                min-width: 100px;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .bar {
+                height: 100%;
+                width: 0;
+                background: linear-gradient(90deg, #f43f5e, #8b5cf6);
+                transition: width 0.4s ease-out;
+            }
+            .stage {
+                text-align: center;
+                min-height: 340px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+            }
+            .emoji {
+                font-size: clamp(4rem, 14vw, 7rem);
+                line-height: 1.2;
+                margin: 6px;
+                animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            @keyframes popIn {
+                0% {
+                    transform: scale(0);
+                    opacity: 0;
+                }
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+            .word {
+                font-size: clamp(1.7rem, 6vw, 2.7rem);
+                font-weight: 900;
+                color: #5b45bd;
+                line-height: 1.15;
+                margin: 12px 0;
+            }
+            .translation {
+                font-size: 1.08rem;
+                color: #69718a;
+                margin-bottom: 15px;
+                font-weight: 600;
+            }
+            .small {
+                font-size: 0.92rem;
+                color: #70778c;
+                font-weight: 600;
+            }
+            .hidden {
+                display: none !important;
+            }
+            .choices {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+                width: 100%;
+                max-width: 650px;
+                margin: 15px auto;
+            }
+            .choice {
+                background: linear-gradient(135deg, #f4f2ff, #f0edff);
+                color: #443777;
+                border: 3px solid #e4defe;
+                font-size: 1.1rem;
+                min-width: 76px;
+                min-height: 52px;
+                transition: all 0.2s ease;
+            }
+            .choice:hover:not(:disabled) {
+                border-color: #c4b5fd;
+                background: linear-gradient(135deg, #e9e5ff, #e4defe);
+            }
+            .choice.selected {
+                background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+                border-color: #10b981;
+                color: #065f46;
+            }
+            .choice.correct {
+                background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+                border-color: #10b981;
+                color: #065f46;
+            }
+            .choice.wrong {
+                background: linear-gradient(135deg, #fecdd3, #fda4af);
+                border-color: #f43f5e;
+                color: #9f1239;
+            }
+            .sentence-box {
+                width: 100%;
+                min-height: 80px;
+                padding: 16px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                border: 3px dashed #c4b5fd;
+                background: linear-gradient(135deg, #faf5ff, #f5f3ff);
+                border-radius: 20px;
+                margin: 8px 0 14px;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+            .token {
+                background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                color: white;
+                border-radius: 14px;
+                padding: 10px 16px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+            }
+            .token:hover {
+                background: linear-gradient(135deg, #7c3aed, #6d28d9);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+            }
+            .token:active {
+                transform: translateY(2px);
+                box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+            }
+            .actions {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                margin: 10px 0;
+            }
+            .actions button {
+                flex: 0 1 auto;
+                white-space: nowrap;
+            }
+            .actions button i {
+                margin-right: 4px;
+            }
+            .actions button i.fa-arrow-right,
+            .actions button i.fa-trophy {
+                margin-right: 0;
+                margin-left: 4px;
+            }
+            .feedback {
+                font-size: 1.1rem;
+                font-weight: 800;
+                min-height: 32px;
+                margin: 8px;
+                text-align: center;
+            }
+            .answer-list {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+                width: 100%;
+                max-width: 520px;
+                margin: 14px auto;
+            }
+            .answer-option {
+                background: linear-gradient(135deg, #f4f2ff, #f0edff);
+                color: #443777;
+                border: 3px solid #e4defe;
+                text-align: left;
+                transition: all 0.2s ease;
+            }
+            .answer-option:hover:not(:disabled) {
+                border-color: #c4b5fd;
+                background: linear-gradient(135deg, #e9e5ff, #e4defe);
+            }
+            .answer-option.correct {
+                background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+                border-color: #10b981;
+            }
+            .answer-option.wrong {
+                background: linear-gradient(135deg, #fecdd3, #fda4af);
+                border-color: #f43f5e;
+            }
+            select {
+                font: inherit;
+                border: 2px solid #e4defe;
+                border-radius: 12px;
+                padding: 9px 12px;
+                background: white;
+                color: var(--ink);
+                cursor: pointer;
+                font-weight: 700;
+            }
+            select:focus {
+                outline: none;
+                border-color: #8b5cf6;
+            }
+
+            #effect-overlay {
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                overflow: hidden;
+                z-index: 9999;
+            }
+            .confetti-piece {
+                position: absolute;
+                top: -18px;
+                width: 10px;
+                height: 16px;
+                opacity: 0.95;
+                animation: confetti-fall var(--duration, 2s) linear forwards;
+                transform: rotate(var(--rotation, 0deg));
+            }
+            .sad-face {
+                position: absolute;
+                top: -60px;
+                animation: sad-fall var(--duration, 2s) ease-in forwards;
+                filter: drop-shadow(0 2px 2px #0001);
+            }
+            @keyframes confetti-fall {
+                0% {
+                    transform: translate3d(0, -10px, 0) rotate(0deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate3d(var(--drift, 20px), 110vh, 0)
+                        rotate(760deg);
+                    opacity: 0.2;
+                }
+            }
+            @keyframes sad-fall {
+                0% {
+                    transform: translateY(-10vh) rotate(-12deg);
+                    opacity: 0;
+                }
+                12% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(115vh) rotate(25deg);
+                    opacity: 0.1;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .confetti-piece,
+                .sad-face {
+                    animation-duration: 0.8s !important;
+                }
+            }
+
+            @media (max-width: 480px) {
+                body {
+                    padding: 10px;
+                }
+                .stage {
+                    min-height: 280px;
+                }
+                .topline {
+                    font-size: 0.92rem;
+                }
+                .choice {
+                    flex: 1 1 28%;
+                    padding: 10px 8px;
+                }
+            }
+        </style>
+    </head>
+    <body
+        class="flex flex-col min-h-screen text-slate-800 antialiased p-3 md:p-6"
+    >
+        <div id="effect-overlay" aria-hidden="true"></div>
+
+        <!-- Header -->
+        <header
+            class="max-w-4xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-md rounded-3xl p-4 md:px-8 mb-6 shadow-xl border-4 border-white/60"
+        >
+            <div class="flex items-center gap-3 mb-3 sm:mb-0">
+                <button
+                    onclick="window.location.href = 'index.html'"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2.5 rounded-xl shadow-md text-lg flex items-center justify-center w-10 h-10 transition btn-pop"
+                    title="Volver al menú"
+                >
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div
+                    class="bg-gradient-to-br from-green-400 to-emerald-500 text-white p-3 rounded-2xl shadow-md text-2xl flex items-center justify-center w-12 h-12"
+                >
+                    <i class="fa-solid fa-pencil-alt"></i>
+                </div>
+                <div>
+                    <h1
+                        class="text-2xl md:text-3xl font-bold text-indigo-600 tracking-wide leading-none font-fun"
+                    >
+                        Sentence Builder
+                    </h1>
+                    <p class="text-xs md:text-sm font-semibold text-pink-500">
+                        <span id="player-name-display">Player</span> -
+                        ¡Construye oraciones! ✨
+                    </p>
+                </div>
+            </div>
+
+            <!-- Score Display -->
+            <div class="flex items-center gap-3">
+                <div
+                    class="flex items-center gap-2 bg-amber-100/80 px-5 py-2.5 rounded-full border-2 border-amber-300 shadow-inner"
+                >
+                    <i class="fa-solid fa-star text-amber-500 text-2xl"></i>
+                    <span
+                        id="score"
+                        class="font-fun text-2xl font-bold text-amber-700"
+                        >0</span
+                    >
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-4xl w-full mx-auto flex-1 flex flex-col justify-center items-center">
+            <main class="panel w-full">
+                <nav class="modes" aria-label="Modos de juego">
+                    <button class="mode active" data-mode="build">
+                        <i class="fa-solid fa-puzzle-piece"></i> Construye la
+                        oración
+                    </button>
+                    <button class="mode" data-mode="verb">
+                        <i class="fa-solid fa-pen"></i> Am, Is or Are?
+                    </button>
+                    <button class="mode" data-mode="listen">
+                        <i class="fa-solid fa-headphones"></i> Escucha y elige
+                    </button>
+                </nav>
+                <div class="topline">
+                    <span id="round">Pregunta 1 de 10</span>
+                    <div class="progress"><div class="bar" id="bar"></div></div>
+                    <span>⭐ <span id="score">0</span></span>
+                </div>
+                <div class="actions" style="margin-top: -4px">
+                    <label
+                        for="difficulty"
+                        class="small"
+                        style="align-self: center; font-weight: 800"
+                        >Dificultad:</label
+                    >
+                    <select id="difficulty" aria-label="Dificultad">
+                        <option value="easy">Fácil</option>
+                        <option value="medium" selected>Medio</option>
+                        <option value="challenge">Reto</option>
+                    </select>
+                </div>
+                <section class="stage">
+                    <div class="emoji" id="emoji">👧</div>
+                    <div class="word" id="question">¡Construye la oración!</div>
+                    <div class="translation" id="translation">
+                        ¿Cómo lo dices en inglés?
+                    </div>
+                    <button class="btn-speak" id="speak">
+                        <i class="fa-solid fa-volume-high"></i> Escuchar la
+                        oración
+                    </button>
+                    <div id="prompt" class="small">
+                        Toca las palabras en el orden correcto.
+                    </div>
+                    <div
+                        id="sentenceBox"
+                        class="sentence-box"
+                        aria-label="Tu oración"
+                    ></div>
+                    <div id="choices" class="choices"></div>
+                    <div
+                        id="feedback"
+                        class="feedback"
+                        aria-live="polite"
+                    ></div>
+                    <div class="actions">
+                        <button class="btn-clear" id="clear">
+                            <i class="fa-solid fa-rotate-left"></i> Borrar
+                            última
+                        </button>
+                        <button class="btn-clear-all" id="clearAll">
+                            <i class="fa-solid fa-eraser"></i> Limpiar todo
+                        </button>
+                        <button class="primary" id="check">
+                            <i class="fa-solid fa-check-circle"></i> Comprobar
+                        </button>
+                        <button class="primary hidden" id="next">
+                            Siguiente <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button class="primary hidden" id="restart">
+                            <i class="fa-solid fa-rotate-right"></i> Jugar otra
+                            vez
+                        </button>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Footer -->
+        <footer
+            class="text-center text-slate-600 text-xs mt-6 font-semibold max-w-4xl w-full mx-auto"
+        >
+            💖 Escucha, lee y di cada oración en voz alta. ¡Tú puedes! ✨
+        </footer>
+        <script>
+            /* ============================================================
+               FIREBASE AND PLAYER MANAGEMENT
+            ============================================================ */
+            // Note: currentPlayer is declared in firebase-config.js
+
+            // Initialize player on page load
+            function initializePlayer() {
+                const playerName =
+                    localStorage.getItem('playerName') ||
+                    sessionStorage.getItem('playerName')
+
+                if (playerName) {
+                    document.getElementById('player-name-display').textContent =
+                        playerName
+
+                    // Try to load from Firebase
+                    if (typeof initializeFirebase === 'function') {
+                        const firebaseInitialized = initializeFirebase()
+
+                        if (
+                            firebaseInitialized &&
+                            typeof loadPlayerFromStorage === 'function'
+                        ) {
+                            const player = loadPlayerFromStorage()
+                            if (player) {
+                                console.log('✅ Player loaded:', player)
+                            }
+                        }
+                    }
+
+                    // Check if player loaded successfully
+                    if (typeof getCurrentPlayer === 'function') {
+                        const player = getCurrentPlayer()
+                        if (!player) {
+                            console.warn(
+                                '⚠️ Player name found but no Firebase data loaded',
+                            )
+                        }
+                    }
+                } else {
+                    // No player found, redirect to main menu
+                    console.log('⚠️ No player found, redirecting to index.html')
+                    window.location.href = 'index.html'
+                }
+            }
+
+            // Save progress to Firebase
+            function saveProgress(mode, earnedScore, earnedStars) {
+                const player =
+                    typeof getCurrentPlayer === 'function'
+                        ? getCurrentPlayer()
+                        : null
+
+                console.log('🔍 Attempting to save progress...', {
+                    mode: mode,
+                    score: earnedScore,
+                    stars: earnedStars,
+                    player: player ? player.name : 'none',
+                })
+
+                if (typeof updatePlayerProgress === 'function' && player) {
+                    const categoryKey = `sentenceBuilder_${mode}`
+
+                    updatePlayerProgress(categoryKey, {
+                        completed: true,
+                        score: earnedScore,
+                        stars: earnedStars,
+                        lastPlayed: new Date().toISOString(),
+                    })
+                        .then((success) => {
+                            if (success) {
+                                console.log(
+                                    '✅ Progress saved to Firebase successfully!',
+                                )
+
+                                // Update session storage cache
+                                if (typeof getCurrentPlayer === 'function') {
+                                    const updatedPlayer = getCurrentPlayer()
+                                    if (updatedPlayer) {
+                                        sessionStorage.setItem(
+                                            'currentPlayer',
+                                            JSON.stringify(updatedPlayer),
+                                        )
+                                    }
+                                }
+
+                                // Show success feedback
+                                const feedback = $('feedback')
+                                const originalText = feedback.textContent
+                                feedback.textContent = '💾 ¡Progreso guardado!'
+                                feedback.style.color = '#10b981'
+                                setTimeout(() => {
+                                    feedback.textContent = originalText
+                                    feedback.style.color = ''
+                                }, 2000)
+                            } else {
+                                console.error(
+                                    '❌ Failed to save progress to Firebase',
+                                )
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('❌ Error saving progress:', error)
+                        })
+                } else {
+                    console.warn(
+                        '⚠️ updatePlayerProgress function not available or no current player',
+                    )
+                    if (!player) {
+                        console.warn(
+                            '⚠️ No current player - scores will not be saved',
+                        )
+                    }
+                }
+            }
+
+            /* ============================================================
+               EXERCISE DATA
+            ============================================================ */
+            const exercises = [
+                {
+                    sentence: 'I am happy.',
+                    es: 'Estoy feliz.',
+                    emoji: '😊',
+                    hint: 'Yo estoy feliz.',
+                },
+                {
+                    sentence: 'I am sad.',
+                    es: 'Estoy triste.',
+                    emoji: '😢',
+                    hint: 'Yo estoy triste.',
+                },
+                {
+                    sentence: 'He is a boy.',
+                    es: 'Él es un niño.',
+                    emoji: '👦',
+                    hint: 'Él es un niño.',
+                },
+                {
+                    sentence: 'She is a girl.',
+                    es: 'Ella es una niña.',
+                    emoji: '👧',
+                    hint: 'Ella es una niña.',
+                },
+                {
+                    sentence: 'It is big.',
+                    es: 'Es grande.',
+                    emoji: '🐘',
+                    hint: 'Eso es grande.',
+                },
+                {
+                    sentence: 'It is small.',
+                    es: 'Es pequeño.',
+                    emoji: '🐭',
+                    hint: 'Eso es pequeño.',
+                },
+                {
+                    sentence: 'You are happy.',
+                    es: 'Tú estás feliz.',
+                    emoji: '😄',
+                    hint: 'Tú estás feliz.',
+                },
+                {
+                    sentence: 'You are sad.',
+                    es: 'Tú estás triste.',
+                    emoji: '🙁',
+                    hint: 'Tú estás triste.',
+                },
+                {
+                    sentence: 'We are happy.',
+                    es: 'Estamos felices.',
+                    emoji: '🧒👧',
+                    hint: 'Nosotros estamos felices.',
+                },
+                {
+                    sentence: 'We are sad.',
+                    es: 'Estamos tristes.',
+                    emoji: '👧🧒',
+                    hint: 'Nosotros estamos tristes.',
+                },
+                {
+                    sentence: 'They are happy.',
+                    es: 'Ellos están felices.',
+                    emoji: '👦👧',
+                    hint: 'Ellos están felices.',
+                },
+                {
+                    sentence: 'They are sad.',
+                    es: 'Ellos están tristes.',
+                    emoji: '😔👧',
+                    hint: 'Ellos están tristes.',
+                },
+                {
+                    sentence: 'The dog is big.',
+                    es: 'El perro es grande.',
+                    emoji: '🐕',
+                    hint: 'El perro es grande.',
+                },
+                {
+                    sentence: 'The cat is small.',
+                    es: 'El gato es pequeño.',
+                    emoji: '🐈',
+                    hint: 'El gato es pequeño.',
+                },
+                {
+                    sentence: 'The duck is happy.',
+                    es: 'El pato está feliz.',
+                    emoji: '🦆',
+                    hint: 'El pato está feliz.',
+                },
+                {
+                    sentence: 'It is a ball.',
+                    es: 'Es una pelota.',
+                    emoji: '⚽',
+                    hint: 'Eso es una pelota.',
+                },
+                {
+                    sentence: 'It is a teddy bear.',
+                    es: 'Es un oso de peluche.',
+                    emoji: '🧸',
+                    hint: 'Eso es un oso de peluche.',
+                },
+                {
+                    sentence: 'The house is big.',
+                    es: 'La casa es grande.',
+                    emoji: '🏠',
+                    hint: 'La casa es grande.',
+                },
+                {
+                    sentence: 'I am a girl.',
+                    es: 'Soy una niña.',
+                    emoji: '👧',
+                    hint: 'Yo soy una niña.',
+                },
+                {
+                    sentence: 'I am a boy.',
+                    es: 'Soy un niño.',
+                    emoji: '👦',
+                    hint: 'Yo soy un niño.',
+                },
+                {
+                    sentence: 'We are happy.',
+                    es: 'Estamos felices.',
+                    emoji: '😊😊',
+                    hint: 'Nosotros estamos felices.',
+                },
+                {
+                    sentence: 'They are small.',
+                    es: 'Ellos son pequeños.',
+                    emoji: '🐭🐭',
+                    hint: 'Ellos son pequeños.',
+                },
+                {
+                    sentence: 'She is happy.',
+                    es: 'Ella está feliz.',
+                    emoji: '🌞👧',
+                    hint: 'Ella está feliz.',
+                },
+                {
+                    sentence: 'He is sad.',
+                    es: 'Él está triste.',
+                    emoji: '👦😢',
+                    hint: 'Él está triste.',
+                },
+                {
+                    sentence: 'You are a boy.',
+                    es: 'Tú eres un niño.',
+                    emoji: '👦',
+                    hint: 'Tú eres un niño.',
+                },
+                {
+                    sentence: 'The ball is big.',
+                    es: 'La pelota es grande.',
+                    emoji: '🏀',
+                    hint: 'La pelota es grande.',
+                },
+                {
+                    sentence: 'The teddy bear is small.',
+                    es: 'El oso de peluche es pequeño.',
+                    emoji: '🧸',
+                    hint: 'El oso de peluche es pequeño.',
+                },
+                {
+                    sentence: 'The cat is happy.',
+                    es: 'El gato está feliz.',
+                    emoji: '😺',
+                    hint: 'El gato está feliz.',
+                },
+                {
+                    sentence: 'The dog is sad.',
+                    es: 'El perro está triste.',
+                    emoji: '🐶',
+                    hint: 'El perro está triste.',
+                },
+                {
+                    sentence: 'They are happy.',
+                    es: 'Ellos están felices.',
+                    emoji: '🎉👧👦',
+                    hint: 'Ellos están felices.',
+                },
+            ]
+            const $ = (id) => document.getElementById(id)
+            const shuffle = (a) => [...a].sort(() => Math.random() - 0.5)
+            let mode = 'build',
+                deck = [],
+                index = 0,
+                score = 0,
+                streak = 0,
+                selected = [],
+                locked = false,
+                tries = 0,
+                roundSize = 10
+            function speak(text) {
+                if (!('speechSynthesis' in window)) {
+                    $('feedback').textContent =
+                        'Tu navegador no permite reproducir audio. Prueba Chrome o Edge.'
+                    return
+                }
+                speechSynthesis.cancel()
+                const u = new SpeechSynthesisUtterance(text)
+                u.lang = 'en-US'
+                u.rate = 0.84
+                u.pitch = 1.05
+                const voices = speechSynthesis.getVoices()
+                const en =
+                    voices.find((v) => v.lang === 'en-US') ||
+                    voices.find((v) => v.lang.startsWith('en'))
+                if (en) u.voice = en
+                speechSynthesis.speak(u)
+            }
+
+            // Efectos visuales sin librerías externas: funcionan también sin internet.
+            function triggerConfetti() {
+                const container = $('effect-overlay')
+                const colors = [
+                    '#f43f5e',
+                    '#8b5cf6',
+                    '#06b6d4',
+                    '#10b981',
+                    '#f59e0b',
+                ]
+                for (let i = 0; i < 80; i++) {
+                    const piece = document.createElement('span')
+                    piece.className = 'confetti-piece'
+                    piece.style.left = Math.random() * 100 + 'vw'
+                    piece.style.background =
+                        colors[Math.floor(Math.random() * colors.length)]
+                    piece.style.setProperty(
+                        '--duration',
+                        1.5 + Math.random() * 1.5 + 's',
+                    )
+                    piece.style.setProperty(
+                        '--drift',
+                        (Math.random() - 0.5) * 240 + 'px',
+                    )
+                    piece.style.setProperty(
+                        '--rotation',
+                        Math.random() * 360 + 'deg',
+                    )
+                    piece.style.borderRadius =
+                        Math.random() > 0.5 ? '50%' : '2px'
+                    container.appendChild(piece)
+                    setTimeout(() => piece.remove(), 3200)
+                }
+            }
+            function triggerSadRain() {
+                const container = $('effect-overlay')
+                const emojis = ['😢', '😭', '💔', '😿']
+                for (let i = 0; i < 18; i++) {
+                    setTimeout(() => {
+                        const face = document.createElement('div')
+                        face.className = 'sad-face'
+                        face.textContent =
+                            emojis[Math.floor(Math.random() * emojis.length)]
+                        face.style.left = Math.random() * 90 + 5 + 'vw'
+                        face.style.fontSize = Math.random() * 1.5 + 2 + 'rem'
+                        face.style.setProperty(
+                            '--duration',
+                            1.8 + Math.random() + 's',
+                        )
+                        container.appendChild(face)
+                        setTimeout(() => face.remove(), 3000)
+                    }, i * 70)
+                }
+            }
+            function wrongFeedback(message) {
+                triggerSadRain()
+                streak = 0
+                $('feedback').textContent = message
+            }
+            function wordsOf(s) {
+                return s.replace(/[.!?]$/, '').split(/\s+/)
+            }
+            function start(newMode = mode) {
+                mode = newMode
+                const diff = $('difficulty').value
+                roundSize = diff === 'easy' ? 8 : diff === 'medium' ? 10 : 12
+                deck = shuffle(exercises).slice(0, roundSize)
+                index = 0
+                score = 0
+                streak = 0
+                selected = []
+                locked = false
+                tries = 0
+                $('score').textContent = score
+                $('next').classList.add('hidden')
+                $('restart').classList.add('hidden')
+                $('check').classList.remove('hidden')
+                $('clear').classList.remove('hidden')
+                $('clearAll').classList.remove('hidden')
+                document
+                    .querySelectorAll('.mode')
+                    .forEach((b) =>
+                        b.classList.toggle('active', b.dataset.mode === mode),
+                    )
+                render()
+            }
+            function render() {
+                locked = false
+                selected = []
+                tries = 0
+                const ex = deck[index]
+                $('round').textContent =
+                    `Pregunta ${index + 1} de ${deck.length}`
+                $('bar').style.width = `${(index / deck.length) * 100}%`
+                $('emoji').textContent = ex.emoji
+                $('feedback').textContent = ''
+                $('translation').textContent =
+                    mode === 'listen'
+                        ? 'Escucha con atención y elige la oración correcta.'
+                        : ex.es
+                $('question').textContent =
+                    mode === 'listen'
+                        ? '¿Qué oración escuchaste?'
+                        : mode === 'verb'
+                          ? 'Completa con am, is o are'
+                          : '¡Construye la oración!'
+                $('prompt').textContent =
+                    mode === 'build'
+                        ? 'Toca las palabras en el orden correcto.'
+                        : mode === 'verb'
+                          ? 'Elige el verbo que completa la oración.'
+                          : 'Puedes volver a escuchar tantas veces como quieras.'
+                $('sentenceBox').innerHTML = ''
+                $('choices').innerHTML = ''
+                $('speak').classList.remove('hidden')
+                $('speak').innerHTML =
+                    mode === 'listen'
+                        ? '<i class="fa-solid fa-volume-high"></i> Reproducir audio'
+                        : '<i class="fa-solid fa-volume-high"></i> Escuchar la oración'
+                if (mode === 'build') renderBuild(ex)
+                if (mode === 'verb') renderVerb(ex)
+                if (mode === 'listen') renderListen(ex)
+                $('check').classList.toggle('hidden', mode === 'listen')
+                $('clear').classList.toggle('hidden', mode !== 'build')
+                $('clearAll').classList.toggle('hidden', mode !== 'build')
+                $('next').classList.add('hidden')
+                $('restart').classList.add('hidden')
+                $('speak').onclick = () => speak(ex.sentence)
+            }
+            function renderBuild(ex) {
+                const target = wordsOf(ex.sentence)
+                let pool = [...target]
+                const diff = $('difficulty').value
+                let extras =
+                    diff === 'easy'
+                        ? []
+                        : [
+                              'am',
+                              'is',
+                              'are',
+                              'I',
+                              'he',
+                              'she',
+                              'they',
+                              'we',
+                              'you',
+                              'happy',
+                              'sad',
+                              'big',
+                              'small',
+                          ]
+                pool = shuffle([
+                    ...pool,
+                    ...shuffle(extras.filter((w) => !pool.includes(w))).slice(
+                        0,
+                        diff === 'challenge' ? 7 : 4,
+                    ),
+                ])
+                pool.forEach((word, i) => {
+                    const b = document.createElement('button')
+                    b.className = 'choice'
+                    b.textContent = word
+                    b.dataset.word = word
+                    b.dataset.id = i
+                    b.onclick = () => pickWord(b, word)
+                    $('choices').append(b)
+                })
+            }
+            function pickWord(btn, word) {
+                if (locked || btn.disabled) return
+                selected.push({ word, id: btn.dataset.id })
+                btn.disabled = true
+                btn.classList.add('selected')
+                drawSentence()
+            }
+            function drawSentence() {
+                $('sentenceBox').innerHTML = ''
+                selected.forEach((item, i) => {
+                    const b = document.createElement('button')
+                    b.className = 'token'
+                    b.textContent = item.word
+                    b.title = 'Toca para quitar esta palabra'
+                    b.onclick = () => {
+                        if (locked) return
+                        const found = selected.splice(i, 1)[0]
+                        const original = [...$('choices').children].find(
+                            (x) => x.dataset.id === found.id,
+                        )
+                        if (original) {
+                            original.disabled = false
+                            original.classList.remove('selected')
+                        }
+                        drawSentence()
+                    }
+                    $('sentenceBox').append(b)
+                })
+                if (!selected.length)
+                    $('sentenceBox').innerHTML =
+                        '<span class="small">Tus palabras aparecerán aquí…</span>'
+            }
+            function normalize(s) {
+                return s
+                    .toLowerCase()
+                    .replace(/[.!?,]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+            }
+            function renderVerb(ex) {
+                const target = ex.sentence
+                const match = target.match(/\b(am|is|are)\b/)
+                const correct = match ? match[0] : 'is'
+                $('question').textContent = target.replace(
+                    /\b(am|is|are)\b/,
+                    '___',
+                )
+                $('sentenceBox').innerHTML =
+                    '<span class="small">Elige el verbo correcto:</span>'
+                shuffle(['am', 'is', 'are']).forEach((v) => {
+                    const b = document.createElement('button')
+                    b.className = 'choice'
+                    b.textContent = v
+                    b.onclick = () => {
+                        if (locked) return
+                        selected = [{ word: v, id: v }]
+                        ;[...$('choices').children].forEach((x) =>
+                            x.classList.remove('selected'),
+                        )
+                        b.classList.add('selected')
+                        $('sentenceBox').innerHTML = ''
+                        const span = document.createElement('span')
+                        span.className = 'token'
+                        span.textContent = v
+                        $('sentenceBox').append(span)
+                    }
+                    $('choices').append(b)
+                })
+                $('check').onclick = () => {
+                    if (locked) return
+                    if (!selected.length) {
+                        $('feedback').textContent =
+                            'Primero elige am, is o are 😊'
+                        return
+                    }
+                    checkVerb(correct, target)
+                }
+            }
+            function checkVerb(correct, target) {
+                tries++
+                const answer = selected[0].word
+                if (answer === correct) {
+                    good(target)
+                    return
+                }
+                wrongFeedback(
+                    tries === 1
+                        ? '¡Casi! Piensa en el pronombre. Inténtalo otra vez.'
+                        : 'Pista: I usa am; he, she e it usan is; you, we y they usan are.',
+                )
+                if (tries >= 2) {
+                    $('feedback').textContent +=
+                        ' La respuesta es “' + correct + '”.'
+                    locked = true
+                    showNext()
+                }
+            }
+            function renderListen(ex) {
+                $('sentenceBox').innerHTML =
+                    '<span class="small">Presiona el botón 🔊 para escuchar.</span>'
+                const opts = shuffle([
+                    ex,
+                    ...shuffle(
+                        exercises.filter((x) => x.sentence !== ex.sentence),
+                    ).slice(0, 2),
+                ])
+                opts.forEach((o) => {
+                    const b = document.createElement('button')
+                    b.className = 'answer-option'
+                    b.textContent = o.sentence
+                    b.onclick = () => {
+                        if (locked) return
+                        if (o.sentence === ex.sentence) {
+                            good(ex.sentence)
+                            b.classList.add('correct')
+                            ;[...$('choices').children].forEach(
+                                (x) => (x.disabled = true),
+                            )
+                        } else {
+                            tries++
+                            b.classList.add('wrong')
+                            b.disabled = true
+                            wrongFeedback(
+                                '¡Vuelve a escuchar e inténtalo otra vez! 💪',
+                            )
+                            if (tries >= 2) {
+                                $('feedback').textContent =
+                                    'La oración era: ' + ex.sentence
+                                locked = true
+                                showNext()
+                            }
+                        }
+                    }
+                    $('choices').append(b)
+                })
+                setTimeout(() => speak(ex.sentence), 250)
+            }
+            $('check').onclick = () => {
+                if (mode === 'verb') return
+                if (locked) return
+                const ex = deck[index]
+                if (mode === 'build') {
+                    if (!selected.length) {
+                        $('feedback').textContent =
+                            '¡Elige algunas palabras primero! 😊'
+                        return
+                    }
+                    tries++
+                    const answer = selected.map((x) => x.word).join(' ')
+                    if (normalize(answer) === normalize(ex.sentence)) {
+                        good(ex.sentence)
+                        return
+                    }
+                    wrongFeedback(
+                        tries === 1
+                            ? '¡Buen intento! Revisa el orden de las palabras y prueba otra vez. 💪'
+                            : '',
+                    )
+                    if (tries === 1) {
+                        $('feedback').textContent =
+                            '¡Buen intento! Revisa el orden de las palabras y prueba otra vez. 💪'
+                    } else {
+                        $('feedback').textContent =
+                            'Pista: ' +
+                            ex.hint +
+                            ' La oración tiene ' +
+                            wordsOf(ex.sentence).length +
+                            ' palabras.'
+                        if (tries >= 3) {
+                            $('feedback').textContent =
+                                'La respuesta es: ' + ex.sentence
+                            locked = true
+                            showNext()
+                        }
+                    }
+                }
+            }
+            function good(sentence) {
+                if (locked) return
+                locked = true
+                triggerConfetti()
+                score += 10 + Math.min(streak, 5) * 2
+                streak++
+                $('score').textContent = score
+                $('feedback').textContent = [
+                    '¡Muy bien! 🎉',
+                    '¡Excelente! ⭐',
+                    '¡Eres una estrella del inglés! 🌟',
+                    '¡Fantástico! 💖',
+                ][Math.floor(Math.random() * 4)]
+                $('translation').textContent = deck[index].es
+                $('question').textContent = sentence
+                $('bar').style.width = `${((index + 1) / deck.length) * 100}%`
+                speak(sentence)
+                $('check').classList.add('hidden')
+                $('clear').classList.add('hidden')
+                $('clearAll').classList.add('hidden')
+                $('next').classList.add('hidden')
+                // Avanza automáticamente después de dar tiempo a celebrar y escuchar la oración.
+                setTimeout(() => {
+                    if (index < deck.length - 1) {
+                        index++
+                        render()
+                    } else finish()
+                }, 1800)
+            }
+            function showNext() {
+                $('check').classList.add('hidden')
+                $('clear').classList.add('hidden')
+                $('clearAll').classList.add('hidden')
+                $('next').classList.remove('hidden')
+                $('next').innerHTML =
+                    index === deck.length - 1
+                        ? 'Ver resultado <i class="fa-solid fa-trophy"></i>'
+                        : 'Siguiente <i class="fa-solid fa-arrow-right"></i>'
+            }
+            function advance() {
+                if (index < deck.length - 1) {
+                    index++
+                    render()
+                } else finish()
+            }
+            function finish() {
+                $('bar').style.width = '100%'
+                $('round').textContent = '¡Reto completado!'
+                $('emoji').textContent =
+                    score >= 100 ? '🏆' : score >= 60 ? '🌟' : '💖'
+                $('question').textContent = '¡Lo hiciste!'
+                $('translation').textContent =
+                    `Ganaste ${score} puntos en ${deck.length} preguntas.`
+                $('prompt').textContent =
+                    score >= 100
+                        ? '¡Increíble! ¡Eres una estrella del inglés!'
+                        : score >= 60
+                          ? '¡Muy buen trabajo! Sigue practicando.'
+                          : '¡Buen intento! Cada ronda te ayudará a mejorar.'
+                $('sentenceBox').innerHTML = ''
+                $('choices').innerHTML = ''
+                $('feedback').textContent = '¡Sigue aprendiendo!'
+                $('speak').classList.add('hidden')
+                $('next').classList.add('hidden')
+                $('check').classList.add('hidden')
+                $('clear').classList.add('hidden')
+                $('clearAll').classList.add('hidden')
+                $('restart').classList.remove('hidden')
+
+                // Calculate stars based on score
+                const maxPossibleScore = deck.length * 10
+                const percentage = (score / maxPossibleScore) * 100
+                let starsEarned = 1
+                if (percentage >= 80) starsEarned = 3
+                else if (percentage >= 50) starsEarned = 2
+
+                // Save progress to Firebase
+                saveProgress(mode, score, starsEarned)
+
+                // Trigger confetti for good performance
+                if (percentage >= 60) {
+                    setTimeout(() => {
+                        triggerConfetti()
+                    }, 300)
+                }
+            }
+            $('clear').onclick = () => {
+                if (locked || !selected.length) return
+                const item = selected.pop()
+                const original = [...$('choices').children].find(
+                    (x) => x.dataset.id === item.id,
+                )
+                if (original) {
+                    original.disabled = false
+                    original.classList.remove('selected')
+                }
+                drawSentence()
+            }
+            $('clearAll').onclick = () => {
+                if (locked) return
+                selected.forEach((item) => {
+                    const original = [...$('choices').children].find(
+                        (x) => x.dataset.id === item.id,
+                    )
+                    if (original) {
+                        original.disabled = false
+                        original.classList.remove('selected')
+                    }
+                })
+                selected = []
+                drawSentence()
+                $('feedback').textContent = ''
+            }
+            $('next').onclick = advance
+            $('restart').onclick = () => start(mode)
+            document
+                .querySelectorAll('.mode')
+                .forEach((b) =>
+                    b.addEventListener('click', () => start(b.dataset.mode)),
+                )
+            $('difficulty').addEventListener('change', () => start(mode))
+            if ('speechSynthesis' in window) speechSynthesis.getVoices()
+
+            // Initialize player and start game
+            window.addEventListener('DOMContentLoaded', () => {
+                initializePlayer()
+            })
+
+            start('build')
+        </script>
+    </body>
+</html>
